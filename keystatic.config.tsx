@@ -29,6 +29,25 @@ export default config({
         }),
       },
     }),
+
+    about: singleton({
+      label: 'About page',
+      path: 'src/content/about',
+      format: { contentField: 'body' },
+      entryLayout: 'content',
+      schema: {
+        body: fields.mdx({
+          label: 'About',
+          description: 'The About page — first person. Headings, lists, links, images.',
+          options: {
+            image: {
+              directory: 'public/images/about',
+              publicPath: '/images/about/',
+            },
+          },
+        }),
+      },
+    }),
   },
 
   collections: {

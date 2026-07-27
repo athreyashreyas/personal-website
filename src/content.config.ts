@@ -44,10 +44,10 @@ const recommendations = defineCollection({
   }),
 });
 
-// Editable single pages (e.g. the home intro), managed as Keystatic singletons.
-// The `home` singleton writes to src/content/home.mdx.
+// Editable single pages (home intro, about), managed as Keystatic singletons
+// that write to src/content/home.mdx and src/content/about.mdx.
 const pages = defineCollection({
-  loader: glob({ pattern: 'home.mdx', base: './src/content' }),
+  loader: glob({ pattern: '{home,about}.mdx', base: './src/content' }),
   schema: z.object({}),
 });
 

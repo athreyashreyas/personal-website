@@ -29,7 +29,7 @@ const resume = 'https://athreyashreyas.github.io/resume/resume_latest.pdf';
         href={resume}
         target="_blank"
         rel="noopener"
-        aria-label="Résumé (PDF)"
+        aria-label="Résumé (PDF, opens in a new tab)"
         title="Résumé (PDF)"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -73,13 +73,15 @@ const resume = 'https://athreyashreyas.github.io/resume/resume_latest.pdf';
   .icons {
     display: inline-flex;
     align-items: center;
-    gap: 0.9rem;
+    gap: 0.35rem;
   }
 
   .icon-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    /* padding enlarges the tap target (~30px) without spreading the icons */
+    padding: 0.35rem;
     color: var(--text-secondary);
     line-height: 0;
     transition:

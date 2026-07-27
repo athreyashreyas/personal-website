@@ -22,7 +22,7 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -138,9 +138,9 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
 
-    <div class="wrap wrap--wide">
+    <header class="wrap wrap--wide">
       <Nav />
-    </div>
+    </header>
 
     <main id="main">
       <div class={prose ? 'wrap' : 'wrap wrap--wide'}>
