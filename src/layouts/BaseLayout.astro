@@ -73,6 +73,24 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
           reflect();
         });
         document.addEventListener('astro:page-load', reflect);
+
+        // Follow the OS theme live — but only while the reader hasn't made an
+        // explicit choice (no stored preference). An explicit toggle wins.
+        try {
+          var mq = window.matchMedia('(prefers-color-scheme: dark)');
+          mq.addEventListener('change', function (e) {
+            if (!localStorage.getItem('theme')) {
+              document.documentElement.setAttribute(
+                'data-theme',
+                e.matches ? 'dark' : 'light',
+              );
+              reflect();
+            }
+          });
+        } catch (err) {
+          /* matchMedia unavailable; initial inference still applies */
+        }
+
         reflect();
       })();
     </script>
