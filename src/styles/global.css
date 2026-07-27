@@ -10,6 +10,14 @@
 @import '@fontsource/plus-jakarta-sans/500.css';
 @import '@fontsource/plus-jakarta-sans/600.css';
 
+/* Registered so the highlight color can animate (plain custom properties
+   can't transition; a typed one can), keeping it in sync with the theme fade. */
+@property --hl {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
 /* ------------------------------------------------------------------ *
  * Design tokens
  * ------------------------------------------------------------------ */
@@ -92,6 +100,13 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* No horizontal scroll anywhere — keeps the header/footer from drifting
+     sideways during scroll on mobile. */
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 body {
@@ -115,14 +130,26 @@ main {
   flex: 1 0 auto;
 }
 
-/* Smooth background fade when the theme toggles. Only the background eases —
-   text and hairline borders switch instantly, so no fade or line flash.
+/* Uniform, snappy theme transition: text, background, borders, icon fills, and
+   the highlight band (--hl) all ease together over the same duration, so the
+   whole site changes as one instead of parts flipping faster than others.
    Guarded by reduced-motion; triggers on change, not first paint. */
 @media (prefers-reduced-motion: no-preference) {
   *,
   *::before,
   *::after {
-    transition: background-color 0.6s ease;
+    transition:
+      background-color 0.22s ease,
+      color 0.22s ease,
+      border-color 0.22s ease,
+      fill 0.22s ease,
+      --hl 0.22s ease;
+  }
+
+  /* Snappier page-to-page cross-fade (Astro view transitions). */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.16s;
   }
 }
 

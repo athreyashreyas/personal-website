@@ -1,20 +1,15 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getEntry, render } from 'astro:content';
+
+// Editable in the CMS under "Home intro" (src/content/home.mdx).
+const home = await getEntry('pages', 'home');
+const { Content } = await render(home!);
 ---
 
 <BaseLayout title="Shreyas Athreya">
   <section class="intro">
-    <p>
-      I’m Shreyas. I build things — mostly software, occasionally the wrong
-      thing twice before the right one. This is where I think out loud: what
-      I’m working on, what I’ve changed my mind about, and the odd experiment
-      that doesn’t belong anywhere else. It’s a personal site, not a résumé, so
-      it’s written for me first and everyone else second.
-    </p>
-    <p class="placeholder-note meta">
-      (Placeholder intro — rewrite in your own voice. See the Voice standard in
-      the spec.)
-    </p>
+    <Content />
   </section>
 </BaseLayout>
 
@@ -24,14 +19,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     max-width: 60ch;
   }
 
-  .intro p:first-child {
-    font-size: 1.35rem;
+  /* Rendered from MDX, so target the paragraphs globally. A touch larger than
+     body text, but clearly below the section headers. */
+  .intro :global(p) {
+    font-size: 1.2rem;
     line-height: 1.6;
     color: var(--text-primary);
-  }
-
-  .placeholder-note {
-    font-size: 0.85rem;
-    font-style: italic;
+    text-align: justify;
   }
 </style>

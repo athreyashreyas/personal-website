@@ -1,0 +1,114 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const items = (await getCollection('recommendations')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+
+// Render each item's rich note inline in the list.
+const rendered = await Promise.all(
+  items.map(async (item) => ({ item, Content: (await render(item)).Content })),
+);
+---
+
+<BaseLayout title="Recommendations">
+  <header class="page-head">
+    <h1><span class="hl-title">Recommendations</span></h1>
+    <p class="page-sub">Books, links, tools, and interesting things worth your time.</p>
+  </header>
+
+  {
+    rendered.length === 0 ? (
+      <p class="meta">Nothing here yet.</p>
+    ) : (
+      <ul class="rec-list">
+        {rendered.map(({ item, Content }) => (
+          <li>
+            <div class="row">
+              {item.data.url ? (
+                <a class="name" href={item.data.url} target="_blank" rel="noopener">
+                  {item.data.title}
+                </a>
+              ) : (
+                <span class="name">{item.data.title}</span>
+              )}
+              {item.data.category && <span class="cat">{item.data.category}</span>}
+            </div>
+            <div class="note">
+              <Content />
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.5rem;
+  }
+  .page-sub {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+
+  .rec-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rec-list > li {
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .rec-list > li:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .name {
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  a.name:hover {
+    color: var(--accent-link);
+    text-decoration: none;
+  }
+
+  .cat {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15em 0.5em;
+  }
+
+  .note {
+    margin-top: 0.5rem;
+    max-width: 60ch;
+  }
+  .note :global(p) {
+    margin: 0.4rem 0 0;
+    color: var(--text-secondary);
+  }
+  .note :global(p:first-child) {
+    margin-top: 0;
+  }
+</style>

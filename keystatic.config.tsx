@@ -1,4 +1,4 @@
-import { config, fields, collection } from '@keystatic/core';
+import { config, fields, collection, singleton } from '@keystatic/core';
 
 // Local storage: editing happens in `npm run dev` at /keystatic and writes
 // files straight into this repo — no login, no database. To later edit from
@@ -8,6 +8,27 @@ export default config({
 
   ui: {
     brand: { name: 'Shreyas — Site' },
+  },
+
+  singletons: {
+    home: singleton({
+      label: 'Home intro',
+      path: 'src/content/home',
+      format: { contentField: 'intro' },
+      entryLayout: 'content',
+      schema: {
+        intro: fields.mdx({
+          label: 'Intro',
+          description: 'The short first-person intro shown on the home page.',
+          options: {
+            image: {
+              directory: 'public/images/home',
+              publicPath: '/images/home/',
+            },
+          },
+        }),
+      },
+    }),
   },
 
   collections: {
@@ -89,6 +110,41 @@ export default config({
             image: {
               directory: 'public/images/projects',
               publicPath: '/images/projects/',
+            },
+          },
+        }),
+      },
+    }),
+
+    recommendations: collection({
+      label: 'Recommendations',
+      slugField: 'title',
+      path: 'src/content/recommendations/*',
+      format: { contentField: 'content' },
+      entryLayout: 'content',
+      columns: ['title', 'category'],
+      schema: {
+        title: fields.slug({ name: { label: 'Title' } }),
+        url: fields.url({
+          label: 'Link',
+          description: 'Optional — where to find it.',
+        }),
+        category: fields.text({
+          label: 'Category',
+          description: 'Optional — e.g. Book, Article, Tool, Rabbit hole.',
+        }),
+        date: fields.date({
+          label: 'Date added',
+          description: 'Used for ordering (newest first).',
+          defaultValue: { kind: 'today' },
+        }),
+        content: fields.mdx({
+          label: 'Why / notes',
+          description: 'What it is and why it is worth someone’s time.',
+          options: {
+            image: {
+              directory: 'public/images/recommendations',
+              publicPath: '/images/recommendations/',
             },
           },
         }),

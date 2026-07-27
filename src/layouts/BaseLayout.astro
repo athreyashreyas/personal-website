@@ -77,6 +77,33 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
       })();
     </script>
 
+    {/* The nav is transition:persist'd (so it doesn't cross-fade and briefly
+        show two selected items). Because it persists, re-mark the current
+        link ourselves after each navigation. */}
+    <script is:inline>
+      (function () {
+        if (window.__navCurrentBound) return;
+        window.__navCurrentBound = true;
+        function trim(p) {
+          return p.replace(/\/+$/, '') || '/';
+        }
+        function updateNavCurrent() {
+          var path = trim(location.pathname);
+          document.querySelectorAll('.site-nav a[href]').forEach(function (a) {
+            var href = trim(a.getAttribute('href'));
+            var isCurrent =
+              href === '/'
+                ? path === '/'
+                : path === href || path.indexOf(href + '/') === 0;
+            if (isCurrent) a.setAttribute('aria-current', 'page');
+            else a.removeAttribute('aria-current');
+          });
+        }
+        document.addEventListener('astro:page-load', updateNavCurrent);
+        updateNavCurrent();
+      })();
+    </script>
+
     <ClientRouter />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

@@ -7,20 +7,22 @@ const links = [
   { href: '/', label: 'Home' },
   { href: '/writing', label: 'Writing' },
   { href: '/projects', label: 'Projects' },
+  { href: '/recommendations', label: 'Recommendations' },
   { href: '/lab', label: 'Lab' },
   { href: '/about', label: 'About' },
 ];
 
 // A link is current if the path matches exactly, or is a section root
-// that the current URL sits under (e.g. /writing/some-post).
+// that the current URL sits under (e.g. /writing/some-post). On client-side
+// (view-transition) navigations this is re-computed in BaseLayout's script.
 function isCurrent(href: string) {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(href + '/');
 }
 ---
 
-<nav class="site-nav" aria-label="Primary">
-  <ul>
+<nav class="site-nav" aria-label="Primary" transition:persist>
+  <ul class="nav-links">
     {
       links.map((link) => (
         <li>
@@ -47,7 +49,7 @@ function isCurrent(href: string) {
     gap: 1rem;
   }
 
-  ul {
+  .nav-links {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -55,6 +57,7 @@ function isCurrent(href: string) {
     flex-wrap: wrap;
     gap: 1.25rem 1.5rem;
     font-size: 1.1rem;
+    min-width: 0;
   }
 
   li {
@@ -64,6 +67,7 @@ function isCurrent(href: string) {
   a {
     color: var(--text-secondary);
     font-weight: 500;
+    white-space: nowrap;
   }
 
   a:hover {
@@ -73,5 +77,43 @@ function isCurrent(href: string) {
 
   a[aria-current='page'] {
     color: var(--accent-link);
+  }
+
+  /* Mobile: keep the links on one line and let them scroll horizontally
+     instead of wrapping (so nothing like "About" drops to a second row).
+     The toggle stays pinned on the right; links slide under a soft fade. */
+  @media (max-width: 640px) {
+    .site-nav {
+      padding-block: 1.1rem;
+      gap: 0.85rem;
+    }
+
+    .nav-links {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 1.15rem;
+      font-size: 1.02rem;
+      scrollbar-width: none; /* Firefox */
+      -webkit-overflow-scrolling: touch;
+      /* fade the trailing edge to hint that the row scrolls */
+      -webkit-mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - 1.25rem),
+        transparent
+      );
+      mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - 1.25rem),
+        transparent
+      );
+    }
+
+    .nav-links::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    li {
+      flex: none;
+    }
   }
 </style>

@@ -34,4 +34,21 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { writing, projects };
+const recommendations = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/recommendations' }),
+  schema: z.object({
+    title: z.string(),
+    url: optionalUrl,
+    category: optionalString,
+    date: z.coerce.date(),
+  }),
+});
+
+// Editable single pages (e.g. the home intro), managed as Keystatic singletons.
+// The `home` singleton writes to src/content/home.mdx.
+const pages = defineCollection({
+  loader: glob({ pattern: 'home.mdx', base: './src/content' }),
+  schema: z.object({}),
+});
+
+export const collections = { writing, projects, recommendations, pages };
