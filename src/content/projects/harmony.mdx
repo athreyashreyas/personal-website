@@ -1,0 +1,46 @@
+---
+title: Harmony
+description: A habit tracker built on the premise that your habits are how you return to yourself — not tasks you're failing at.
+status: active
+date: 2025-05-01
+links: {}
+---
+
+Most habit trackers run on shame. A streak you can break, a plant that dies if
+you skip a day, a score that goes down. Harmony has none of that — no streaks,
+no shame, no plant pets, no score. The premise is the opposite: your habits are
+how you return to yourself, and one missed day should never read as failure.
+
+## The Bloom
+
+The centre of the app is a soft radial visual called the Bloom — your week as a
+living flower, one petal per area of life. A petal grows as you tend that area
+and eases back when it goes untended. It reads a rolling two-week window,
+recalculated daily, so a single missed day barely moves it.
+
+Two things shape a petal: how much the area matters to you (lower-stakes areas
+fill more readily, which pulls the eye toward the things you said matter most)
+and how each habit inside it is doing, weighted the way you choose. There are
+also **Tugs** — negative habits you want to ease off. They're never scheduled;
+you just note them on the days they happen and they gently pull an area back, so
+a week honestly shows both the lift and the drag.
+
+## Under the hood
+
+Harmony is a PWA: React + TypeScript on Vite, with **Dexie (IndexedDB) as the
+source of truth on each device**. Writes mirror to Supabase and, when offline,
+queue in a durable outbox that flushes on reconnect; live changes arrive over
+Supabase Realtime with focus/online/poll backstops and an authoritative pull on
+sign-in. Push notifications land within about a minute of the time you set,
+delivered by a separate Cloudflare Worker that signs VAPID + `aes128gcm` payloads
+with the Web Crypto API — no Node crypto dependency at all.
+
+The one decision I'd defend hardest is keeping the scheduling and "drift" engine
+single-sourced in a shared package, re-exported as thin shims into both the web
+app and the push worker. The rule that decides whether a habit is due today has
+to be byte-identical in both places, or reminders quietly fire on the wrong days.
+Duplicating it would have been faster to write and a nightmare to trust.
+
+> *Retrospective to backfill: the honest account of what the drift model got
+> wrong before it settled — this is the interesting part and only I can write
+> it truthfully.*

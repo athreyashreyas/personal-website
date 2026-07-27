@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Lab">
+  <section class="lab-empty">
+    <h1><span class="hl-title">Lab</span></h1>
+    <p>
+      Nothing here yet — check back. This is where one-off interactive
+      things will live: games, visualizations, toys. Each one gets its own
+      self-contained page.
+    </p>
+    <p class="meta">
+      To add one, drop a new page at
+      <code>src/pages/lab/&lt;experiment&gt;.astro</code>. It can use its own
+      JS, canvas, whatever it needs — the only shared thing is the nav and
+      footer.
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .lab-empty p {
+    max-width: 55ch;
+    margin-top: 1.25rem;
+  }
+</style>

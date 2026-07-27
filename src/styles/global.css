@@ -1,0 +1,299 @@
+/* Self-hosted fonts (via @fontsource, no render-blocking Google link) */
+/* Newsreader — editorial serif, used for headings AND body */
+@import '@fontsource/newsreader/400.css';
+@import '@fontsource/newsreader/500.css';
+@import '@fontsource/newsreader/600.css';
+@import '@fontsource/newsreader/700.css';
+@import '@fontsource/newsreader/400-italic.css';
+/* Plus Jakarta Sans — nav, footer, UI/meta only */
+@import '@fontsource/plus-jakarta-sans/400.css';
+@import '@fontsource/plus-jakarta-sans/500.css';
+@import '@fontsource/plus-jakarta-sans/600.css';
+
+/* ------------------------------------------------------------------ *
+ * Design tokens
+ * ------------------------------------------------------------------ */
+:root {
+  /* Color — light mode (default) */
+  --bg:             #FAF8F3;
+  --text-primary:   #2B2420;
+  --text-secondary: #6B6558;
+  --border:         #E4DFD1;
+  /* Using the dark-mode greens in light mode too (experiment). */
+  --accent-heading: #58A588;
+  --accent-link:    #79C6A8;
+
+  /* Theme-toggle shadow — darker drop shadow in light mode. */
+  --toggle-shadow:       0 3px 8px rgba(43, 36, 32, 0.5);
+  --toggle-shadow-hover: 0 5px 14px rgba(43, 36, 32, 0.62);
+
+  /* Highlighter band behind section titles. Inner vars resolve per theme
+     at use-site, so this one declaration adapts to light/dark. */
+  --hl: color-mix(in srgb, var(--accent-link) 42%, var(--bg));
+
+  /* Type */
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+
+  /* Rhythm */
+  --measure: 65ch;      /* prose line length */
+  --measure-wide: 78ch; /* nav/footer can span slightly wider */
+  --radius: 5px;
+
+  color-scheme: light dark;
+}
+
+/* Dark palette — softer, warmer charcoal (lifted off the old near-black)
+   and slightly eased text to cut glare. Applied when the system prefers
+   dark AND the reader hasn't explicitly chosen light... */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg:             #2E2A25;
+    --text-primary:   #ECE7DC;
+    --text-secondary: #ABA495;
+    --border:         #443E35;
+    --accent-heading: #58A588;
+    --accent-link:    #79C6A8;
+    /* Light, visible glow-shadow against the dark background. */
+    --toggle-shadow:       0 0 9px rgba(242, 238, 228, 0.32);
+    --toggle-shadow-hover: 0 0 15px rgba(242, 238, 228, 0.48);
+    color-scheme: dark;
+  }
+}
+
+/* ...or when the reader explicitly toggles dark (wins over system light). */
+:root[data-theme='dark'] {
+  --bg:             #2E2A25;
+  --text-primary:   #ECE7DC;
+  --text-secondary: #ABA495;
+  --border:         #443E35;
+  --accent-heading: #58A588;
+  --accent-link:    #79C6A8;
+  --toggle-shadow:       0 0 9px rgba(242, 238, 228, 0.32);
+  --toggle-shadow-hover: 0 0 15px rgba(242, 238, 228, 0.48);
+  color-scheme: dark;
+}
+
+/* Explicit light choice wins over system dark. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* ------------------------------------------------------------------ *
+ * Reset-ish base
+ * ------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1.1875rem;
+  line-height: 1.7;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Sticky footer: main grows to fill so the footer always reaches the
+   bottom of the viewport, even on short pages. */
+main {
+  flex: 1 0 auto;
+}
+
+/* Smooth background fade when the theme toggles. Only the background eases —
+   text and hairline borders switch instantly, so no fade or line flash.
+   Guarded by reduced-motion; triggers on change, not first paint. */
+@media (prefers-reduced-motion: no-preference) {
+  *,
+  *::before,
+  *::after {
+    transition: background-color 0.6s ease;
+  }
+}
+
+img,
+picture,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ------------------------------------------------------------------ *
+ * Typography
+ * ------------------------------------------------------------------ */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.011em;
+  color: var(--text-primary);
+  margin: 0 0 0.4em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(1.85rem, 1.4rem + 2vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.018em;
+}
+
+/* Highlighter band behind a title. Wrap the title text in
+   <span class="hl-title"> — display:inline + box-decoration-break keeps the
+   band hugging the text and cloned across wrapped lines. */
+.hl-title {
+  display: inline;
+  background-image: linear-gradient(var(--hl), var(--hl));
+  background-repeat: no-repeat;
+  background-size: 100% 0.9em;
+  background-position: 0 85%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 0.05em;
+}
+
+h2 {
+  font-size: clamp(1.55rem, 1.25rem + 1.4vw, 2rem);
+  margin-top: 1.7em;
+}
+
+h3 {
+  font-size: 1.35rem;
+  margin-top: 1.5em;
+}
+
+p {
+  margin: 0 0 1.15em;
+}
+
+/* Justify the main reading text (no hyphenation — whole words only). */
+.prose p,
+.prose li,
+.intro p {
+  text-align: justify;
+}
+
+a {
+  color: var(--accent-link);
+  font-weight: 500;
+  text-decoration: none;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+strong {
+  font-weight: 600;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5em 0;
+}
+
+blockquote {
+  margin: 1.6em 0;
+  padding-left: 1.1em;
+  border-left: 2px solid var(--border);
+  color: var(--accent-heading);
+  font-style: italic;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--border) 45%, transparent);
+  padding: 0.12em 0.35em;
+  border-radius: 3px;
+}
+
+pre {
+  padding: 1em 1.15em;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+ul,
+ol {
+  padding-left: 1.3em;
+  margin: 0 0 1.15em;
+}
+
+li {
+  margin: 0.3em 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-link);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Layout primitives
+ * ------------------------------------------------------------------ */
+.wrap {
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.wrap--wide {
+  max-width: var(--measure-wide);
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  background: var(--bg);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  z-index: 10;
+}
+
+/* Small muted meta text (dates, tags) — set in the sans face */
+.meta {
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}

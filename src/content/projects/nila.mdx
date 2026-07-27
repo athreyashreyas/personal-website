@@ -1,0 +1,38 @@
+---
+title: Nila
+description: A menstrual cycle tracker where the server, by construction, never sees a single health detail.
+status: active
+date: 2025-06-15
+links: {}
+---
+
+Nila is a privacy-first menstrual cycle tracking PWA for iPhone and iPad. Given
+what period-tracking data has been used for, the design starts from a hard
+constraint: **the server must never be able to read a single health detail** —
+not a period date, not a symptom, not a mood, not a note.
+
+## Zero-knowledge by construction
+
+The master key is derived from your password with PBKDF2 (600k iterations) and
+never leaves the device. Every cycle and daily log is AES-256-GCM encrypted
+client-side; the server stores only a random UUID and an encrypted blob, plus the
+PBKDF2 salt and a wrapped master key. A 12-word BIP39 recovery phrase covers
+account recovery without the password, and the same password unlocks the same
+data across iPhone and iPad. "We don't look at your data" is a promise; *the
+server structurally cannot* is an architecture — Nila is the second.
+
+## The tracking itself
+
+Four-phase cycle model (period, follicular, ovulation, luteal) with
+confidence-weighted prediction from your history, and a five-state period status
+(none, approaching, late, active-started-today, active-ongoing) that each gets
+its own home-screen treatment. Predictions recalculate automatically whenever
+cycles are added, edited, ended, or removed. Daily check-ins (mood, energy, flow,
+symptoms, notes) feed pattern-aware insight cards — *"you tend to log cramps in
+your luteal phase"* — plus a scrubable hormone graph and phase-aware
+food/movement recommendations.
+
+Built on Next.js 16 (App Router) + TypeScript, Tailwind v4 and Framer Motion,
+Supabase for auth and encrypted storage only, and the `@noble` / `@scure`
+libraries for the crypto. Installable, offline-capable, dark/light/system theme
+that syncs across devices, with iOS push for period reminders.

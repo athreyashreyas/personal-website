@@ -1,0 +1,90 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+const { title, description, status, links } = project.data;
+---
+
+<BaseLayout title={title} description={description}>
+  <article>
+    <header class="project-head">
+      <p class="meta"><a href="/projects">Projects</a></p>
+      <div class="title-row">
+        <h1><span class="hl-title">{title}</span></h1>
+        {status && <span class="status">{status}</span>}
+      </div>
+      <p class="lede">{description}</p>
+      {
+        (links.repo || links.live) && (
+          <p class="links meta">
+            {links.live && <a href={links.live}>Live</a>}
+            {links.repo && <a href={links.repo}>Code</a>}
+          </p>
+        )
+      }
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .project-head {
+    margin-bottom: 2.5rem;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+  .title-row h1 {
+    margin-bottom: 0;
+  }
+
+  .status {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15em 0.5em;
+  }
+
+  .lede {
+    margin: 0.75rem 0 0;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+
+  .links {
+    margin: 0.75rem 0 0;
+    display: flex;
+    gap: 1.1rem;
+  }
+
+  .prose :global(h2),
+  .prose :global(h3) {
+    color: var(--accent-heading);
+  }
+  .prose :global(img) {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-block: 1.6em;
+  }
+</style>

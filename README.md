@@ -1,0 +1,133 @@
+# Personal site
+
+Astro + MDX content collections, edited through a local **Keystatic** CMS.
+Fully static, no database, no backend. Deployed on Netlify. Built to the spec
+in [`personal-site-spec.md`](./personal-site-spec.md).
+
+## Develop
+
+```sh
+npm install
+npm run dev      # http://localhost:4321  (site + CMS)
+npm run build    # outputs to dist/  (static; CMS excluded)
+npm run preview  # serve the production build locally
+```
+
+## Adding content — the easy way (Keystatic CMS)
+
+This is the normal way to write posts and projects. No Markdown, no
+frontmatter by hand.
+
+1. Run `npm run dev`.
+2. Open **http://localhost:4321/keystatic**.
+3. Pick **Writing** or **Projects**, hit **＋ Create**, fill in the fields, and
+   write the body in the rich editor — headings, **bold**, bullet lists,
+   quotes, and **images dragged/pasted inline** between paragraphs.
+4. Click **Save**. Keystatic writes an `.mdx` file into `src/content/…` and
+   drops any images into `public/images/…`.
+5. Publish it — see the versioning commands below.
+
+**How it stays static & private:** Keystatic (and its React runtime) load only
+in `npm run dev` — see the `isDev` switch in `astro.config.mjs`. The deployed
+site never ships the CMS, needs no login, and has no serverless functions.
+You author locally and publish via git. (To later edit from anywhere incl.
+phone, flip `storage.kind` in `keystatic.config.tsx` from `'local'` to
+`'github'` and install the Keystatic GitHub app — no other change needed.)
+
+## Publishing & restoring content (your safety net)
+
+Because content is just files in git, every publish is a restore point. These
+commands wrap git so you never have to remember it — and none of them delete
+anything without first showing you exactly what will change and asking:
+
+```sh
+npm run content:status     # what you've changed since the last publish
+npm run content:publish    # save a restore point (commit) + push it live
+npm run content:undo       # throw away unpublished edits — a bad/wrong save
+npm run content:history    # list recent publishes you can go back to
+npm run content:restore -- 1   # bring back an earlier version (by number or hash)
+```
+
+Typical rescues:
+
+- **"I saved a mess in the editor and want the last good version back."**
+  → `npm run content:undo` (restores the last published version; only affects
+  edits you haven't published yet).
+- **"I published something wrong and want to roll back."**
+  → `npm run content:history` to find the good version, then
+  `npm run content:restore -- <number>`, review with `npm run dev`, and
+  `npm run content:publish` to make it live again.
+
+> First time only: run `npm run content:publish` once to create your first
+> restore point. Until a version has been published, there's nothing for
+> `undo`/`restore` to fall back to (they'll tell you this rather than delete
+> anything).
+
+Prefer a custom label on a restore point? `npm run content:publish -- "fixed the Harmony write-up"`.
+
+## Adding content — by hand (optional)
+
+The CMS just reads/writes plain files, so you can still author directly. Add an
+`.mdx` file to `src/content/writing/` or `src/content/projects/` — the filename
+becomes the URL slug (`my-post.mdx` → `/writing/my-post`).
+
+Writing frontmatter:
+
+```yaml
+---
+title: Your title, which can carry a point of view
+date: 2025-07-24
+tags: ["optional", "tags"]
+dek: One-line summary shown in the list view (optional).
+draft: false   # true = hidden from the list and from production builds
+---
+
+Body in Markdown/MDX.
+```
+
+Project frontmatter:
+
+```yaml
+---
+title: Project name
+description: One-line summary.
+status: active        # optional — e.g. active, archived, in progress
+date: 2025-07-24      # optional — used for ordering
+links:
+  repo: https://github.com/...   # optional
+  live: https://...              # optional
+---
+
+The actual write-up — what it is, why you built it, what you got wrong,
+where it stands.
+```
+
+### A new Lab experiment — a little code
+
+Each experiment is its own self-contained page. Create
+`src/pages/lab/<name>.astro` and wrap it in `BaseLayout` so it inherits the
+nav and footer — beyond that it's free to use its own JS, canvas, etc.
+
+```astro
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Experiment name" prose={false}>
+  <!-- your interactive thing here -->
+</BaseLayout>
+```
+
+Then add a link to it from `src/pages/lab/index.astro`.
+
+## Design tokens
+
+All colors, fonts, and spacing live as CSS custom properties in
+`src/styles/global.css`. Light/dark defaults to `prefers-color-scheme` and can
+be overridden by the header toggle (persisted per browser). Change the visual
+identity in the tokens, not in individual components.
+
+## Deploy
+
+Push to `main`; Netlify builds with `npm run build` and publishes `dist/`
+(see `netlify.toml`). No domain is hardcoded anywhere.

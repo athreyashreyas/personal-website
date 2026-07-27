@@ -1,0 +1,110 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate, isoDate } from '../../lib/format';
+
+// Exclude drafts in production; keep them visible in dev for authoring.
+const posts = (await getCollection('writing', ({ data }) => {
+  return import.meta.env.PROD ? data.draft !== true : true;
+})).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<BaseLayout title="Writing">
+  <header class="page-head">
+    <h1><span class="hl-title">Writing</span></h1>
+    <p class="page-sub">Notes and longer pieces, most recent first.</p>
+  </header>
+
+  {
+    posts.length === 0 ? (
+      <p class="meta">Nothing published yet.</p>
+    ) : (
+      <ul class="post-list">
+        {posts.map((post) => (
+          <li>
+            <a class="post-link" href={`/writing/${post.id}`}>
+              <span class="title">
+                {post.data.title}
+                {post.data.draft && <span class="draft-tag">draft</span>}
+              </span>
+              <time class="date meta" datetime={isoDate(post.data.date)}>
+                {formatDate(post.data.date)}
+              </time>
+            </a>
+            {post.data.dek && <p class="dek">{post.data.dek}</p>}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.5rem;
+  }
+  .page-sub {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+
+  .post-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .post-list > li {
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .post-list > li:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .post-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .post-link:hover {
+    text-decoration: none;
+  }
+  .post-link:hover .title {
+    color: var(--accent-link);
+  }
+
+  .title {
+    font-size: 1.15rem;
+  }
+
+  .draft-tag {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.4em;
+    margin-left: 0.5em;
+    vertical-align: middle;
+  }
+
+  .date {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .dek {
+    margin: 0.4rem 0 0;
+    color: var(--text-secondary);
+    max-width: 60ch;
+  }
+</style>

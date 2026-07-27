@@ -1,0 +1,50 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About">
+  <article class="prose">
+    <h1><span class="hl-title">About</span></h1>
+
+    <p class="placeholder-note meta">
+      (Placeholder — rewrite this in first person, specific and true. The notes
+      below are prompts, not copy to ship.)
+    </p>
+
+    <p>
+      Start with something concrete and a little unexpected — not a job title.
+      Where you’re from, what you were doing at 2pm on a random Tuesday, the
+      thing you’d talk about for an hour without being asked twice.
+    </p>
+
+    <p>
+      A paragraph on how you actually spend time. The spec suggests
+      motorcycling and books — if that’s true, say what kind, name the last one
+      that mattered, admit the one everyone loves that you couldn’t finish.
+      Specifics do the work here; vague enthusiasm reads as filler.
+    </p>
+
+    <h2>What I care about in the work</h2>
+    <p>
+      One honest belief about how you like to build — ideally one you arrived
+      at by being wrong first. Not “I value quality.” Something with a scar on
+      it.
+    </p>
+
+    <h2>Elsewhere</h2>
+    <p>
+      Links out — GitHub, email, anywhere worth pointing to. Keep it to the
+      handful that actually matter.
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .placeholder-note {
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+  .prose :global(h2) {
+    color: var(--accent-heading);
+  }
+</style>

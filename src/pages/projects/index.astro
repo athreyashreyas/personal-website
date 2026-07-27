@@ -1,0 +1,113 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const projects = (await getCollection('projects')).sort((a, b) => {
+  const at = a.data.date?.getTime() ?? 0;
+  const bt = b.data.date?.getTime() ?? 0;
+  return bt - at;
+});
+---
+
+<BaseLayout title="Projects">
+  <header class="page-head">
+    <h1><span class="hl-title">Projects</span></h1>
+    <p class="page-sub">Things I've built, with the honest version of how they went.</p>
+  </header>
+
+  <ul class="project-list">
+    {
+      projects.map((project) => (
+        <li>
+          <div class="row">
+            <a class="name" href={`/projects/${project.id}`}>
+              {project.data.title}
+            </a>
+            {project.data.status && (
+              <span class="status">{project.data.status}</span>
+            )}
+          </div>
+          <p class="desc">{project.data.description}</p>
+          {(project.data.links.repo || project.data.links.live) && (
+            <p class="links meta">
+              {project.data.links.live && (
+                <a href={project.data.links.live}>Live</a>
+              )}
+              {project.data.links.repo && (
+                <a href={project.data.links.repo}>Code</a>
+              )}
+            </p>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.5rem;
+  }
+  .page-sub {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+
+  .project-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .project-list > li {
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .project-list > li:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .name {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .name:hover {
+    color: var(--accent-link);
+    text-decoration: none;
+  }
+
+  .status {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15em 0.5em;
+  }
+
+  .desc {
+    margin: 0.5rem 0 0;
+    color: var(--text-secondary);
+    max-width: 60ch;
+  }
+
+  .links {
+    margin: 0.6rem 0 0;
+    display: flex;
+    gap: 1.1rem;
+  }
+</style>

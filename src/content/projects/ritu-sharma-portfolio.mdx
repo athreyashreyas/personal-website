@@ -1,0 +1,37 @@
+---
+title: Ritu Sharma Art
+description: A watercolour & oil painting portfolio and sales site the artist can run entirely herself.
+status: active
+date: 2024-11-15
+links: {}
+---
+
+A portfolio and sales website for a watercolour and oil painter. Homepage with a
+latest-work gallery preview and artist statement, a filterable masonry gallery
+(`/artworks`) by medium, availability and price, full artwork pages with the
+story and an inquiry form, plus About, Contact with commission requests, and
+Exhibitions.
+
+The real design constraint wasn't the front end — it was **who maintains it.**
+The artist needed to add and sell paintings, and edit her own About page, with
+zero technical knowledge and no phone call to me. So the CMS is a Sanity Studio
+embedded at `/studio` (no separate deployment), images go through Cloudinary, and
+there's a plain-language guide that walks her through adding a painting start to
+finish. If the site needs a developer to update it, it's a failed brief.
+
+## The decisions worth noting
+
+- **Placeholder-first.** The site runs out of the box with empty placeholder
+  content, so the whole UI could be built and reviewed before any real backend
+  was wired up. Connecting Sanity + Cloudinary lights up the real gallery and
+  emails.
+- **SEO taken seriously.** Per-page metadata, dynamic OG images, `VisualArtwork`
+  + `Person` JSON-LD, sitemap and robots — because a painter's site that isn't
+  findable isn't doing its one job.
+- **Escape hatches documented up front.** A migration runbook for moving off any
+  provider (especially Cloudinary) without re-uploading every image by hand, and
+  a staged image-hardening playbook left deliberately un-applied so images stay
+  full quality until traffic actually justifies compressing them.
+
+Built on Next.js 16 (App Router), React 19, Sanity v6, Cloudinary, Tailwind, with
+Resend for inquiry emails (falling back to server logs when it's not configured).

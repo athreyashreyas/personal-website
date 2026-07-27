@@ -1,0 +1,74 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate, isoDate } from '../../lib/format';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('writing', ({ data }) => {
+    return import.meta.env.PROD ? data.draft !== true : true;
+  });
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<BaseLayout title={post.data.title} description={post.data.dek}>
+  <article>
+    <header class="post-head">
+      <p class="meta">
+        <a href="/writing">Writing</a>
+      </p>
+      <h1><span class="hl-title">{post.data.title}</span></h1>
+      <p class="post-meta meta">
+        <time datetime={isoDate(post.data.date)}>
+          {formatDate(post.data.date)}
+        </time>
+        {
+          post.data.tags && post.data.tags.length > 0 && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span class="tags">{post.data.tags.join(', ')}</span>
+            </>
+          )
+        }
+      </p>
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-head {
+    margin-bottom: 2.5rem;
+  }
+  .post-head h1 {
+    margin-bottom: 0.35em;
+  }
+
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  /* Prose rhythm is largely handled by global.css element styles;
+     this just ensures a comfortable measure and a little breathing room. */
+  .prose :global(img) {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-block: 1.6em;
+  }
+  .prose :global(h2),
+  .prose :global(h3) {
+    color: var(--accent-heading);
+  }
+</style>
