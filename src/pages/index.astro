@@ -27,4 +27,12 @@ const { Content } = await render(home!);
     color: var(--text-primary);
     text-align: justify;
   }
+
+  /* Phone portrait: left-align (justify opens rivers in the narrow measure).
+     Set here because this scoped rule outranks the global .intro override. */
+  @media (max-width: 640px) {
+    .intro :global(p) {
+      text-align: left;
+    }
+  }
 </style>
