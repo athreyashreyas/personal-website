@@ -10,6 +10,12 @@ import keystatic from '@keystatic/astro';
 // the deployed site stays fully static. MDX is always on so pages render.
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Site-only dev: skip the heavy Keystatic + React integration (and its
+// hundreds of pre-bundled @keystar/ui modules) for a fast `astro dev` startup.
+// Use `npm run dev` when you're iterating on the site; `npm run dev:cms` when
+// you actually need the /keystatic editor.
+const withKeystatic = isDev && process.env.SITE_ONLY !== '1';
+
 // Every subpath a package exposes (e.g. '@keystar/ui/menu'), read from its
 // own export map so the list stays complete as Keystatic updates.
 function subpathEntries(pkg) {
@@ -38,7 +44,7 @@ function subpathEntries(pkg) {
 // Pre-bundle Keystatic's heavy UI library (@keystar/ui) and core up front, so
 // the admin doesn't compile each section on first navigation — the cause of
 // slow section-switching in /keystatic. Cached after the first cold start.
-const keystaticDeps = isDev
+const keystaticDeps = withKeystatic
   ? [
       'react',
       'react/jsx-runtime',
@@ -58,7 +64,7 @@ export default defineConfig({
     prefetchAll: true,
     defaultStrategy: 'viewport',
   },
-  integrations: [mdx(), ...(isDev ? [react(), keystatic()] : [])],
+  integrations: [mdx(), ...(withKeystatic ? [react(), keystatic()] : [])],
   vite: {
     optimizeDeps: { include: keystaticDeps },
   },
