@@ -19,11 +19,11 @@ const { Content } = await render(home!);
     max-width: 60ch;
   }
 
-  /* Rendered from MDX, so target the paragraphs globally. A touch larger than
-     body text, but clearly below the section headers. */
+  /* Rendered from MDX, so target the paragraphs globally. Same size as regular
+     body text. */
   .intro :global(p) {
-    font-size: 1.2rem;
-    line-height: 1.6;
+    font-size: 1.1875rem;
+    line-height: 1.7;
     color: var(--text-primary);
     text-align: justify;
   }

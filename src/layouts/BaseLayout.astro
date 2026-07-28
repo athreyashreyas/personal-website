@@ -3,6 +3,7 @@ import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import DarkBgPicker from '../components/DarkBgPicker.astro';
 
 interface Props {
   title: string;
@@ -29,7 +30,7 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 
     {/* Mobile browser chrome matches the page background per theme. */}
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAF8F3" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1B1A" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#191A19" />
 
     {/* No-flash theme init: set data-theme before first paint. */}
     <script is:inline>
@@ -238,5 +239,7 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
     <div class="wrap wrap--wide">
       <Footer />
     </div>
+
+    {import.meta.env.DEV && <DarkBgPicker />}
   </body>
 </html>

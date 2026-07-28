@@ -52,7 +52,7 @@
    dark AND the reader hasn't explicitly chosen light... */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg:             #1A1B1A;
+    --bg:             #191A19;
     --text-primary:   #ECE7DC;
     --text-secondary: #ABA495;
     --border:         #443E35;
@@ -67,7 +67,7 @@
 
 /* ...or when the reader explicitly toggles dark (wins over system light). */
 :root[data-theme='dark'] {
-  --bg:             #1A1B1A;
+  --bg:             #191A19;
   --text-primary:   #ECE7DC;
   --text-secondary: #ABA495;
   --border:         #443E35;
