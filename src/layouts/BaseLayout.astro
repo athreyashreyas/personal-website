@@ -143,6 +143,43 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
       })();
     </script>
 
+    {/* Top navigation progress bar. Starts when a view-transition navigation
+        begins, completes when the new page has loaded. Bound once; the bar
+        element is transition:persist'd so its state survives the swap. */}
+    <script is:inline>
+      (function () {
+        if (window.__navProgressBound) return;
+        window.__navProgressBound = true;
+        var doneTimer;
+        function bar() {
+          return document.getElementById('nav-progress');
+        }
+        function start() {
+          var el = bar();
+          if (!el) return;
+          clearTimeout(doneTimer);
+          el.classList.remove('is-done');
+          // Reset to 0 without a transition, then force reflow so the grow
+          // animation runs from the start on every navigation.
+          el.classList.remove('is-loading');
+          void el.offsetWidth;
+          el.classList.add('is-loading');
+        }
+        function done() {
+          var el = bar();
+          if (!el) return;
+          el.classList.remove('is-loading');
+          el.classList.add('is-done');
+          // After the fade-out, return to the idle base state.
+          doneTimer = setTimeout(function () {
+            el.classList.remove('is-done');
+          }, 500);
+        }
+        document.addEventListener('astro:before-preparation', start);
+        document.addEventListener('astro:page-load', done);
+      })();
+    </script>
+
     <ClientRouter />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -157,6 +194,7 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
+    <div id="nav-progress" aria-hidden="true" transition:persist></div>
     <a href="#main" class="skip-link">Skip to content</a>
 
     <header class="wrap wrap--wide">
