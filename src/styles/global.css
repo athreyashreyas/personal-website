@@ -19,10 +19,12 @@
   --text-primary:   #2B2420;
   --text-secondary: #6B6558;
   --border:         #E4DFD1;
-  /* Greens tuned to meet WCAG AA contrast on the paper background
-     (the lighter mint fails ~1.8:1 on light; these pass). */
-  --accent-heading: #17563F;
-  --accent-link:    #1E6B4F;
+  /* The light greens chosen as the brand identity (shared with dark mode),
+     used for links, the theme toggle, and the logo. NB: below WCAG text
+     contrast on the paper bg — in-content links are underlined so they stay
+     distinguishable without relying on color alone. */
+  --accent-heading: #58A588;
+  --accent-link:    #79C6A8;
 
   /* Theme-toggle shadow — darker drop shadow in light mode. */
   --toggle-shadow:       0 3px 8px rgba(43, 36, 32, 0.5);

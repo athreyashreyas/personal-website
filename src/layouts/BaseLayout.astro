@@ -27,6 +27,10 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+    {/* Mobile browser chrome matches the page background per theme. */}
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAF8F3" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2E2A25" />
+
     {/* No-flash theme init: set data-theme before first paint. */}
     <script is:inline>
       (function () {
