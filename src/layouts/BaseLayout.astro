@@ -143,6 +143,32 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
       })();
     </script>
 
+    {/* Close the mobile nav dropdown after navigating or clicking outside it.
+        The <details> element handles opening; this just tidies it away. */}
+    <script is:inline>
+      (function () {
+        if (window.__navMenuBound) return;
+        window.__navMenuBound = true;
+        function closeMenus() {
+          document.querySelectorAll('details.nav-dd[open]').forEach(function (d) {
+            d.open = false;
+          });
+        }
+        document.addEventListener('click', function (e) {
+          var t = e.target;
+          var dd = t && t.closest ? t.closest('details.nav-dd') : null;
+          // A link inside the menu was clicked: let it navigate, then close.
+          if (dd && t.closest('a')) {
+            closeMenus();
+            return;
+          }
+          // A click anywhere outside an open menu closes it.
+          if (!dd) closeMenus();
+        });
+        document.addEventListener('astro:page-load', closeMenus);
+      })();
+    </script>
+
     {/* Top navigation progress bar. Starts when a view-transition navigation
         begins, completes when the new page has loaded. Bound once; the bar
         element is transition:persist'd so its state survives the swap. */}

@@ -305,6 +305,16 @@ p {
   text-align: justify;
 }
 
+/* On phones, justified text opens ugly rivers in the narrow measure — read
+   left-aligned instead. */
+@media (max-width: 640px) {
+  .prose p,
+  .prose li,
+  .intro p {
+    text-align: left;
+  }
+}
+
 a {
   color: var(--accent-link);
   font-weight: 500;

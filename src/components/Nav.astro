@@ -22,6 +22,39 @@ function isCurrent(href: string) {
 ---
 
 <nav class="site-nav" aria-label="Primary" transition:persist>
+  {/* Phone portrait: a compact dropdown menu on the left. Closing on
+      navigation / outside-click is handled in BaseLayout's inline script. */}
+  <details class="nav-dd">
+    <summary class="nav-dd-trigger" aria-label="Open navigation menu">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </svg>
+      <span>Menu</span>
+    </summary>
+    <ul class="nav-dd-list">
+      {
+        links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              aria-current={isCurrent(link.href) ? 'page' : undefined}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </details>
+
+  {/* Tablet and up: inline links. */}
   <ul class="nav-links">
     {
       links.map((link) => (
@@ -36,6 +69,7 @@ function isCurrent(href: string) {
       ))
     }
   </ul>
+
   <ThemeToggle />
 </nav>
 
@@ -79,31 +113,104 @@ function isCurrent(href: string) {
     color: var(--accent-link);
   }
 
-  /* Phone portrait: show every section (no horizontal scroll). The toggle
-     tucks into the top-right, and the links sit centered below, wrapping
-     onto a second row cleanly — balanced and uncrowded. */
+  /* The dropdown is phone-only; hidden on tablet and up. */
+  .nav-dd {
+    display: none;
+  }
+
+  /* Phone portrait: one slim row — menu button on the left, toggle on the
+     right — instead of the tall wrapped list. */
   @media (max-width: 640px) {
     .site-nav {
-      flex-direction: column;
-      align-items: stretch;
-      /* Tighter than before: the header is sticky on mobile, so keep the band
-         slim to preserve reading space. */
-      gap: 0.35rem;
-      padding-block: 0.6rem 0.7rem;
+      padding-block: 0.85rem;
     }
 
     .nav-links {
-      order: 2;
-      justify-content: center;
-      gap: 0.4rem 1.15rem;
-      font-size: 1.04rem;
-      row-gap: 0.4rem;
+      display: none;
     }
 
-    /* the theme toggle sits alone, aligned to the top-right */
-    .site-nav > :global(.theme-toggle) {
-      order: 1;
-      align-self: flex-end;
+    .nav-dd {
+      display: block;
+      position: relative;
+    }
+
+    .nav-dd-trigger {
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-size: 1.08rem;
+      color: var(--text-secondary);
+      padding: 0.25rem 0.15rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* hide the native disclosure triangle */
+    .nav-dd-trigger::-webkit-details-marker {
+      display: none;
+    }
+    .nav-dd-trigger {
+      list-style-type: none;
+    }
+    .nav-dd-trigger svg {
+      width: 1.2rem;
+      height: 1.2rem;
+      transition: color 0.2s ease;
+    }
+    .nav-dd[open] .nav-dd-trigger,
+    .nav-dd-trigger:hover {
+      color: var(--accent-link);
+    }
+
+    .nav-dd-list {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      left: 0;
+      z-index: 200;
+      min-width: 12.5rem;
+      list-style: none;
+      margin: 0;
+      padding: 0.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-dd-list a {
+      display: block;
+      padding: 0.55rem 0.7rem;
+      border-radius: 9px;
+      font-size: 1.05rem;
+      white-space: nowrap;
+    }
+    .nav-dd-list a:hover {
+      background: color-mix(in srgb, var(--accent-link) 10%, transparent);
+      color: var(--accent-link);
+    }
+    .nav-dd-list a[aria-current='page'] {
+      color: var(--accent-link);
+      background: color-mix(in srgb, var(--accent-link) 13%, transparent);
+    }
+
+    .nav-dd[open] .nav-dd-list {
+      animation: nav-dd-in 0.18s ease;
+    }
+    @keyframes nav-dd-in {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+    }
+  }
+
+  @media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+    .nav-dd[open] .nav-dd-list {
+      animation: none;
     }
   }
 </style>
