@@ -1,0 +1,141 @@
+---
+// Harmony — the Bloom. Palette from the app: warm parchment, terracotta "iris"
+// and sage. Each petal is one area of life; its length shows how tended it is.
+import StillFrame from './StillFrame.astro';
+
+// Six petals around the centre. length: 0..1 (how grown), each its own hue.
+const petals = [
+  { angle: 0, len: 1.0, color: '#b5532f', label: 'Movement' },
+  { angle: 60, len: 0.72, color: '#47602a', label: 'Craft' },
+  { angle: 120, len: 0.9, color: '#c98f3e', label: 'Mind' },
+  { angle: 180, len: 0.55, color: '#c9714a', label: 'Rest' },
+  { angle: 240, len: 0.82, color: '#6e9b61', label: 'People' },
+  { angle: 300, len: 0.4, color: '#b85c72', label: 'Money' },
+];
+const cx = 150;
+const cy = 150;
+---
+
+<StillFrame variant="phone" label="Harmony — the Bloom, your week as one living flower">
+  <div class="hmy">
+    <header class="hmy-top">
+      <p class="hmy-kicker">This week</p>
+      <h3 class="hmy-title">Your bloom</h3>
+    </header>
+
+    <svg class="hmy-bloom" viewBox="0 0 300 300" role="img" aria-label="A radial bloom of six petals">
+      {
+        petals.map((p) => {
+          const ry = 30 + p.len * 66;
+          const petalCy = cy - ry - 20;
+          return (
+            <ellipse
+              cx={cx}
+              cy={petalCy}
+              rx={26}
+              ry={ry}
+              fill={p.color}
+              opacity={0.42 + p.len * 0.5}
+              transform={`rotate(${p.angle} ${cx} ${cy})`}
+            />
+          );
+        })
+      }
+      <circle cx={cx} cy={cy} r={30} fill="#944021" />
+      <circle cx={cx} cy={cy} r={30} fill="url(#hmyCore)" />
+      <defs>
+        <radialGradient id="hmyCore" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="#f6e0cf" stop-opacity="0.85" />
+          <stop offset="55%" stop-color="#c9714a" stop-opacity="0.15" />
+          <stop offset="100%" stop-color="#944021" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+    </svg>
+
+    <ul class="hmy-legend">
+      {
+        petals.map((p) => (
+          <li>
+            <span class="hmy-dot" style={`background:${p.color}`} />
+            {p.label}
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="hmy-tug">
+      <span class="hmy-tug-dot"></span> Late nights, eased twice this week
+    </p>
+  </div>
+</StillFrame>
+
+<style>
+  .hmy {
+    background: #fffaf1;
+    color: #23190f;
+    padding: 18px 16px 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .hmy-top {
+    text-align: center;
+  }
+  .hmy-kicker {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #ab977a;
+  }
+  .hmy-title {
+    margin: 2px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 21px;
+    color: #23190f;
+  }
+  .hmy-bloom {
+    display: block;
+    width: 200px;
+    height: 200px;
+    margin: 6px auto 4px;
+  }
+  .hmy-legend {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 7px 8px;
+  }
+  .hmy-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #76654c;
+  }
+  .hmy-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .hmy-tug {
+    margin: 14px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: #94502f;
+    background: #f6e0cf;
+    padding: 8px 11px;
+    border-radius: 10px;
+  }
+  .hmy-tug-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #b5532f;
+    flex: none;
+  }
+</style>

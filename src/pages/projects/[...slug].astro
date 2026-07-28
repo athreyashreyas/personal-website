@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectLinks from '../../components/ProjectLinks.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -26,10 +27,9 @@ const { title, description, status, links } = project.data;
       <p class="lede">{description}</p>
       {
         (links.repo || links.live) && (
-          <p class="links meta">
-            {links.live && <a href={links.live}>Live</a>}
-            {links.repo && <a href={links.repo}>Code</a>}
-          </p>
+          <div class="links">
+            <ProjectLinks links={links} />
+          </div>
         )
       }
     </header>

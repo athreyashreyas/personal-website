@@ -1,0 +1,206 @@
+---
+// Hisaab — the one "safe to spend" number, after upcoming bills. Palette from
+// the app: parchment, deep ledger teal, moss income / rose overspend. Money is
+// set in the serif face so it reads like a hand-kept ledger.
+import StillFrame from './StillFrame.astro';
+---
+
+<StillFrame variant="phone" label="Hisaab — one honest number, after the bills still to come">
+  <div class="hsb">
+    <header class="hsb-top">
+      <div>
+        <p class="hsb-kicker">July</p>
+        <h3 class="hsb-title">Hisaab</h3>
+      </div>
+      <span class="hsb-chip">₹ Ledger</span>
+    </header>
+
+    <div class="hsb-hero">
+      <p class="hsb-hero-kicker">Safe to spend</p>
+      <p class="hsb-hero-amt">₹24,380</p>
+      <p class="hsb-hero-note">after ₹18,600 of bills still due this month</p>
+      <div class="hsb-bar">
+        <span class="hsb-bar-spent" style="width:58%"></span>
+        <span class="hsb-bar-due" style="width:22%"></span>
+      </div>
+    </div>
+
+    <ul class="hsb-list">
+      <li>
+        <span class="hsb-ic hsb-ic--teal">G</span>
+        <span class="hsb-name">Groceries</span>
+        <span class="hsb-meta">Today · Cash</span>
+        <span class="hsb-amt">−₹840</span>
+      </li>
+      <li>
+        <span class="hsb-ic hsb-ic--moss">S</span>
+        <span class="hsb-name">Salary</span>
+        <span class="hsb-meta">1 Jul · Income</span>
+        <span class="hsb-amt hsb-amt--in">+₹82,000</span>
+      </li>
+      <li>
+        <span class="hsb-ic hsb-ic--rose">E</span>
+        <span class="hsb-name">Electricity</span>
+        <span class="hsb-meta">Due 28 Jul</span>
+        <span class="hsb-amt">−₹1,240</span>
+      </li>
+    </ul>
+
+    <nav class="hsb-tabs">
+      <span class="hsb-tab hsb-tab--on">Home</span>
+      <span class="hsb-tab">Ledger</span>
+      <span class="hsb-add">+</span>
+      <span class="hsb-tab">Goals</span>
+      <span class="hsb-tab">More</span>
+    </nav>
+  </div>
+</StillFrame>
+
+<style>
+  .hsb {
+    background: #faf9f6;
+    color: #1a1a18;
+    padding: 18px 16px 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .hsb-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 13px;
+  }
+  .hsb-kicker {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9b9890;
+  }
+  .hsb-title {
+    margin: 1px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 21px;
+  }
+  .hsb-chip {
+    font-size: 10px;
+    color: #114a44;
+    background: #d6e9e5;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+
+  .hsb-hero {
+    background: #114a44;
+    border-radius: 15px;
+    padding: 15px 16px 16px;
+    color: #f3fbf9;
+    box-shadow: 0 10px 20px -8px rgba(17, 74, 68, 0.5);
+  }
+  .hsb-hero-kicker {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: #86c0b8;
+  }
+  .hsb-hero-amt {
+    margin: 3px 0 0;
+    font-family: Georgia, serif;
+    font-size: 38px;
+    line-height: 1;
+  }
+  .hsb-hero-note {
+    margin: 7px 0 11px;
+    font-size: 11px;
+    color: #b8ddd6;
+  }
+  .hsb-bar {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+  }
+  .hsb-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+  }
+  .hsb-bar-spent { background: #4ba096; }
+  .hsb-bar-due { background: #c98f3e; }
+
+  .hsb-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+  }
+  .hsb-list li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    column-gap: 10px;
+    padding: 9px 2px;
+    border-top: 1px solid #f0ede6;
+  }
+  .hsb-ic {
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .hsb-ic--teal { background: #1e7f75; }
+  .hsb-ic--moss { background: #4f7942; }
+  .hsb-ic--rose { background: #b85c72; }
+  .hsb-name {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .hsb-meta {
+    grid-column: 2;
+    font-size: 10.5px;
+    color: #9b9890;
+    margin-top: 1px;
+  }
+  .hsb-amt {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+    font-family: Georgia, serif;
+    font-size: 15px;
+    color: #3d3d38;
+  }
+  .hsb-amt--in { color: #4f7942; }
+
+  .hsb-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: 12px -16px 0;
+    padding: 10px 0 15px;
+    border-top: 1px solid #f0ede6;
+    background: #fdfcf9;
+  }
+  .hsb-tab {
+    font-size: 11px;
+    color: #9b9890;
+  }
+  .hsb-tab--on {
+    color: #1e7f75;
+    font-weight: 700;
+  }
+  .hsb-add {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #1e7f75;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    margin-top: -20px;
+    box-shadow: 0 6px 14px -4px rgba(30, 127, 117, 0.6);
+  }
+</style>

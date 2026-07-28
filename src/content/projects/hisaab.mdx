@@ -3,36 +3,40 @@ title: Hisaab
 description: An end-to-end encrypted expense tracker whose whole job is one honest "safe to spend" number.
 status: active
 date: 2025-03-20
-links: {}
+links: { repo: 'https://github.com/athreyashreyas/hisaab' }
 ---
 
-Hisaab (Hindi/Urdu for "the reckoning" or "the account") is an honest read on
-where your money goes. Log any expense or income in a couple of taps, bucket it
-across accounts and categories, and read one clear **safe to spend** number that
-already subtracts the bills still to come. It's the third app in a suite with
-Attend and Harmony, and shares their design language: serif display + sans on
-warm parchment, with a deep ledger teal and money set in the serif face so it
+import HisaabStill from '../../components/stills/HisaabStill.astro';
+
+Hisaab (Hindi and Urdu for "the reckoning" or "the account") is an honest read on
+where your money goes. Log any expense or income in a couple of taps, sort it
+across accounts and categories, and read one clear safe-to-spend number that has
+already subtracted the bills still to come. It's the third app in a suite with
+Attend and Harmony, and shares their design language: a serif display and sans
+on warm parchment, a deep ledger teal, and money set in the serif face so it
 reads like a hand-kept account book.
+
+<HisaabStill />
 
 ## Truly end to end
 
 This is the part I care about most. Your ledger is encrypted with a key derived
-from a passphrase only you know. A passphrase runs through **Argon2id** to a
+from a passphrase only you know. The passphrase runs through Argon2id to a
 key-encryption key, which wraps a data-encryption key, which AES-GCM-encrypts
 every record before it leaves the device. The cloud holds ciphertext and
-timestamps — nothing readable. Changing your passphrase re-wraps the DEK without
-re-encrypting your data, and a one-time Recovery Key (plus an offline encrypted
-export) covers a forgotten passphrase.
+timestamps, nothing readable. Changing your passphrase re-wraps the DEK without
+re-encrypting your data, and a one-time Recovery Key, plus an offline encrypted
+export, covers a forgotten passphrase.
 
 ## Manual, and proud of it
 
 The hardest call was refusing to auto-capture bank SMS and UPI transactions. It's
-the feature people ask for first, and I archived it on purpose: a PWA can't read
-SMS on any OS, and bank-linked data in India means the regulated Account
-Aggregator route — real work, real compliance, wrong thing to gate v1 on. So v1
-commits fully to making *manual* entry fast and pleasant instead of shipping a
-half-working magic trick. Email-alert auto-capture is the planned next step, when
-it can be done properly.
+the feature people ask for first, and I archived it on purpose. A PWA can't read
+SMS on any OS, and bank-linked data in India means going through the regulated
+Account Aggregator route, which is real work and real compliance and the wrong
+thing to gate v1 on. So v1 commits fully to making *manual* entry fast and
+pleasant instead of shipping a half-working magic trick. Email-alert auto-capture
+is the planned next step, once it can be done properly.
 
 Stack: Vite · React · TypeScript · Tailwind · Dexie (IndexedDB) · Supabase for
 the encrypted backup · TanStack Query · Zustand · recharts · hash-wasm (Argon2id)

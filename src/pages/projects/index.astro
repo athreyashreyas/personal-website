@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectLinks from '../../components/ProjectLinks.astro';
 
 const projects = (await getCollection('projects')).sort((a, b) => {
   const at = a.data.date?.getTime() ?? 0;
@@ -29,14 +30,9 @@ const projects = (await getCollection('projects')).sort((a, b) => {
           </div>
           <p class="desc">{project.data.description}</p>
           {(project.data.links.repo || project.data.links.live) && (
-            <p class="links meta">
-              {project.data.links.live && (
-                <a href={project.data.links.live}>Live</a>
-              )}
-              {project.data.links.repo && (
-                <a href={project.data.links.repo}>Code</a>
-              )}
-            </p>
+            <div class="links">
+              <ProjectLinks links={project.data.links} />
+            </div>
           )}
         </li>
       ))

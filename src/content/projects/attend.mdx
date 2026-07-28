@@ -3,37 +3,41 @@ title: Attend
 description: A local-first attendance tracker that tells you exactly how many classes you can still afford to miss.
 status: active
 date: 2025-04-10
-links: {}
+links: { repo: 'https://github.com/athreyashreyas/attendance-tracker' }
 ---
 
-Attend keeps every class above its attendance line without the spreadsheet. Add
-your classes, mark each session in a tap, and it tells you where you actually
+import AttendStill from '../../components/stills/AttendStill.astro';
+
+Attend keeps every class above its attendance line, without the spreadsheet. Add
+your classes, mark each session with a tap, and it tells you where you actually
 stand: how many you can still miss, how many you'd need in a row to recover, and
 where you'll land by the end of term.
 
-The design choice that shaped everything: **the class is the unit, not the
-semester.** A degree subject can live under a semester; a dance class or hobby
-can stand completely alone. That one decision is why the same app works for a
-university timetable and a twice-a-week pottery class, and it's the thing most
-attendance apps get wrong by assuming everyone's life is neatly termed.
+<AttendStill />
+
+The idea that shaped everything is that the class is the unit, not the semester.
+A degree subject can sit under a semester, but a dance class or a hobby can stand
+on its own. That one decision is why the same app works for a university
+timetable and a twice-a-week pottery class, and it's the thing most attendance
+apps get wrong by assuming everyone's life is neatly divided into terms.
 
 ## Looking forward, not just back
 
-The number that matters isn't your current percentage — it's the projection.
-Attend works out the classes still to come, the best-case and worst-case final
-standing, and turns that into plain guidance: *you can miss 3 more*, or *attend 4
-in a row to recover*. You can also drop a class onto a future day as "scheduled"
-and decide how it actually went later; planned classes never touch your
-percentage until you mark them. Breaks (a holiday or exam week) can be cancelled
-across a date range for every class at once, and cancelled sessions drop out of
-the maths automatically.
+The number that matters isn't your current percentage. It's the projection.
+Attend works out the classes still to come and the best and worst you can finish
+on, then turns that into plain guidance: you can miss 3 more, or attend 4 in a
+row to recover. You can also drop a class onto a future day as "scheduled" and
+decide later how it actually went; planned classes never touch your percentage
+until you mark them. When a holiday or exam week comes up, you can cancel a date
+range across every class at once, and cancelled sessions drop out of the maths
+automatically.
 
 ## Local-first, native-feeling
 
-Reads come straight from **Dexie (IndexedDB)**, so the app is instant and fully
+Reads come straight from Dexie (IndexedDB), so the app is instant and fully
 usable with no signal; edits sync to your own Supabase account in the background.
-Vite + React + TypeScript (strict), Tailwind and Framer Motion for the feel, a
-sidebar rail on iPad and a bottom tab bar on phones, all safe-area aware. It
-installs to the home screen and works offline by default — the whole point is
-that you can mark a class as you walk out of the room, on the subway, with no
-connection.
+It's built with Vite, React and TypeScript (strict), with Tailwind and Framer
+Motion for the feel, a sidebar rail on iPad and a bottom tab bar on phones, all
+safe-area aware. It installs to the home screen and works offline by default. The
+whole point is that you can mark a class as you walk out of the room, on the
+subway, with no connection.

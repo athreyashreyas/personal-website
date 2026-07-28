@@ -1,0 +1,175 @@
+---
+// Nila — cycle home. Palette from the app: warm parchment, berry accent, and
+// the four phase colours (period / follicular / ovulation / luteal). The ring
+// is the cycle; the marker sits on today. No real health data, just a mockup.
+import StillFrame from './StillFrame.astro';
+
+// 28-day cycle split into four phases, drawn on a pathLength=100 ring.
+const phases = [
+  { color: '#b6432e', len: 17.86, start: 0 }, // period ~5d
+  { color: '#c29a24', len: 28.57, start: 17.86 }, // follicular ~8d
+  { color: '#2e8a8a', len: 10.71, start: 46.43 }, // ovulation ~3d
+  { color: '#6a4aa0', len: 42.86, start: 57.14 }, // luteal ~12d
+];
+const rot = (start: number) => -90 + (start / 100) * 360;
+// Today = day 18 of 28.
+const t = (18 / 28) * 2 * Math.PI - Math.PI / 2;
+const mx = 100 + 80 * Math.cos(t);
+const my = 100 + 80 * Math.sin(t);
+---
+
+<StillFrame variant="phone" label="Nila — where you are in the cycle, computed on-device">
+  <div class="nla">
+    <header class="nla-top">
+      <h3 class="nla-title">Nila</h3>
+      <span class="nla-lock">encrypted</span>
+    </header>
+
+    <div class="nla-ring-wrap">
+      <svg class="nla-ring" viewBox="0 0 200 200" role="img" aria-label="Cycle ring, day 18, luteal phase">
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#f0ede6" stroke-width="14" />
+        {
+          phases.map((p) => (
+            <circle
+              cx="100"
+              cy="100"
+              r="80"
+              fill="none"
+              stroke={p.color}
+              stroke-width="14"
+              pathLength="100"
+              stroke-dasharray={`${p.len - 1.2} ${100 - p.len + 1.2}`}
+              transform={`rotate(${rot(p.start)} 100 100)`}
+              stroke-linecap="round"
+            />
+          ))
+        }
+        <circle cx={mx} cy={my} r="9" fill="#fdfcf9" stroke="#6a4aa0" stroke-width="4" />
+      </svg>
+      <div class="nla-ring-mid">
+        <p class="nla-day">Day 18</p>
+        <p class="nla-phase">Luteal phase</p>
+      </div>
+    </div>
+
+    <p class="nla-predict">Period expected in about 9 days</p>
+
+    <div class="nla-insight">
+      <p class="nla-insight-k">Pattern</p>
+      <p class="nla-insight-t">You tend to log cramps in your luteal phase.</p>
+    </div>
+
+    <div class="nla-checkin">
+      <span class="nla-pill">Mood</span>
+      <span class="nla-pill">Energy</span>
+      <span class="nla-pill nla-pill--on">Cramps</span>
+      <span class="nla-pill">Notes</span>
+    </div>
+  </div>
+</StillFrame>
+
+<style>
+  .nla {
+    background: #faf9f6;
+    color: #1a1a18;
+    padding: 18px 16px 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .nla-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nla-title {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 21px;
+  }
+  .nla-lock {
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8e3b5c;
+    background: rgba(142, 59, 92, 0.13);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  .nla-ring-wrap {
+    position: relative;
+    width: 190px;
+    height: 190px;
+    margin: 8px auto 2px;
+  }
+  .nla-ring {
+    width: 100%;
+    height: 100%;
+  }
+  .nla-ring-mid {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .nla-day {
+    margin: 0;
+    font-family: Georgia, serif;
+    font-size: 30px;
+    line-height: 1;
+    color: #1a1a18;
+  }
+  .nla-phase {
+    margin: 4px 0 0;
+    font-size: 11.5px;
+    color: #6a4aa0;
+    font-weight: 600;
+  }
+
+  .nla-predict {
+    text-align: center;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #6b6960;
+  }
+
+  .nla-insight {
+    margin: 13px 0 0;
+    background: #fdfcf9;
+    border: 1px solid #f0ede6;
+    border-left: 3px solid #8e3b5c;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .nla-insight-k {
+    margin: 0;
+    font-size: 9.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #8e3b5c;
+  }
+  .nla-insight-t {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    color: #3d3d38;
+  }
+
+  .nla-checkin {
+    display: flex;
+    gap: 6px;
+    margin-top: 13px;
+  }
+  .nla-pill {
+    font-size: 10.5px;
+    color: #6b6960;
+    background: #f0ede6;
+    padding: 5px 10px;
+    border-radius: 999px;
+  }
+  .nla-pill--on {
+    background: #8e3b5c;
+    color: #fdfcf9;
+  }
+</style>

@@ -1,0 +1,102 @@
+---
+// A device frame for a project "still": a self-contained HTML/CSS recreation of
+// an app screen, wrapped in a phone bezel or a browser chrome. The screen
+// content is slotted in and carries its own (app-accurate) palette, so a still
+// reads like a screenshot and looks the same in the site's light or dark theme.
+interface Props {
+  variant?: 'phone' | 'browser';
+  label?: string;
+  url?: string;
+}
+const { variant = 'phone', label, url } = Astro.props;
+---
+
+<figure class={`still still--${variant}`}>
+  <div class="still-device">
+    {
+      variant === 'browser' && (
+        <div class="still-chrome">
+          <span class="dot" />
+          <span class="dot" />
+          <span class="dot" />
+          {url && <span class="still-url">{url}</span>}
+        </div>
+      )
+    }
+    <div class="still-screen">
+      <slot />
+    </div>
+  </div>
+  {label && <figcaption>{label}</figcaption>}
+</figure>
+
+<style>
+  .still {
+    margin: 2.25rem 0;
+  }
+
+  /* Phone */
+  .still--phone .still-device {
+    width: 300px;
+    max-width: 100%;
+    margin-inline: auto;
+    padding: 0.5rem;
+    border-radius: 2.5rem;
+    background: linear-gradient(160deg, #35322e, #14120f);
+    box-shadow:
+      0 22px 45px -14px rgba(0, 0, 0, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .still--phone .still-screen {
+    border-radius: 2rem;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  /* Browser */
+  .still--browser .still-device {
+    width: 640px;
+    max-width: 100%;
+    margin-inline: auto;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 22px 45px -16px rgba(0, 0, 0, 0.4);
+  }
+  .still-chrome {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.85rem;
+    background: #e9e6df;
+  }
+  .still-chrome .dot {
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    background: #c4bdb0;
+  }
+  .still-url {
+    margin-left: 0.7rem;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    color: #6b6960;
+    background: #fbfaf7;
+    padding: 0.16rem 0.7rem;
+    border-radius: 999px;
+  }
+
+  figcaption {
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 0.8rem;
+  }
+
+  @media (max-width: 460px) {
+    .still--phone .still-device {
+      width: 260px;
+    }
+  }
+</style>

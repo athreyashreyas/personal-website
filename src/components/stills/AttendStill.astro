@@ -1,0 +1,186 @@
+---
+// Attend — term overview screen. Palette from the app: parchment / ink / sage,
+// with amber and rose for at-risk classes. Serif display for numbers.
+import StillFrame from './StillFrame.astro';
+---
+
+<StillFrame variant="phone" label="Attend — every class, and how much room you have left">
+  <div class="atd">
+    <header class="atd-top">
+      <div>
+        <p class="atd-kicker">Spring term</p>
+        <h3 class="atd-title">Attend</h3>
+      </div>
+      <span class="atd-avatar">SA</span>
+    </header>
+
+    <div class="atd-hero">
+      <p class="atd-hero-name">Data Structures</p>
+      <p class="atd-hero-pct">92%</p>
+      <p class="atd-hero-note">You can miss 3 more and stay above 85%.</p>
+      <div class="atd-bar"><span style="width:92%"></span></div>
+    </div>
+
+    <ul class="atd-list">
+      <li>
+        <span class="atd-dot atd-dot--amber"></span>
+        <span class="atd-name">Pottery</span>
+        <span class="atd-sub">attend 2 in a row to recover</span>
+        <span class="atd-pct atd-pct--amber">78%</span>
+      </li>
+      <li>
+        <span class="atd-dot atd-dot--sage"></span>
+        <span class="atd-name">Statistics</span>
+        <span class="atd-sub">3 classes to spare</span>
+        <span class="atd-pct atd-pct--sage">96%</span>
+      </li>
+      <li>
+        <span class="atd-dot atd-dot--rose"></span>
+        <span class="atd-name">French A2</span>
+        <span class="atd-sub">below the line</span>
+        <span class="atd-pct atd-pct--rose">71%</span>
+      </li>
+    </ul>
+
+    <nav class="atd-tabs">
+      <span class="atd-tab atd-tab--on">Today</span>
+      <span class="atd-tab">Calendar</span>
+      <span class="atd-tab">Stats</span>
+    </nav>
+  </div>
+</StillFrame>
+
+<style>
+  .atd {
+    background: #faf9f6;
+    color: #1a1a18;
+    padding: 18px 16px 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .atd-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .atd-kicker {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9b9890;
+  }
+  .atd-title {
+    margin: 1px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    font-weight: 400;
+    color: #1a1a18;
+  }
+  .atd-avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e8f0e6;
+    color: #2d4a2e;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .atd-hero {
+    background: #fdfcf9;
+    border: 1px solid #f0ede6;
+    border-radius: 14px;
+    padding: 14px 15px;
+    box-shadow: 0 4px 10px -4px rgba(35, 25, 15, 0.08);
+  }
+  .atd-hero-name {
+    margin: 0;
+    font-size: 12px;
+    color: #6b6960;
+  }
+  .atd-hero-pct {
+    margin: 2px 0 0;
+    font-family: Georgia, serif;
+    font-size: 40px;
+    line-height: 1;
+    color: #4f7942;
+  }
+  .atd-hero-note {
+    margin: 6px 0 10px;
+    font-size: 11.5px;
+    color: #3d3d38;
+  }
+  .atd-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: #e8f0e6;
+    overflow: hidden;
+  }
+  .atd-bar span {
+    display: block;
+    height: 100%;
+    background: #4f7942;
+  }
+
+  .atd-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+  }
+  .atd-list li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    column-gap: 9px;
+    padding: 10px 2px;
+    border-top: 1px solid #f0ede6;
+  }
+  .atd-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .atd-dot--sage { background: #4f7942; }
+  .atd-dot--amber { background: #c98f3e; }
+  .atd-dot--rose { background: #b85c72; }
+  .atd-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1a1a18;
+  }
+  .atd-sub {
+    grid-column: 2;
+    font-size: 10.5px;
+    color: #9b9890;
+    margin-top: 1px;
+  }
+  .atd-pct {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+    font-family: Georgia, serif;
+    font-size: 17px;
+  }
+  .atd-pct--sage { color: #4f7942; }
+  .atd-pct--amber { color: #b8782a; }
+  .atd-pct--rose { color: #a14a5e; }
+
+  .atd-tabs {
+    display: flex;
+    justify-content: space-around;
+    margin: 12px -16px 0;
+    padding: 11px 0 15px;
+    border-top: 1px solid #f0ede6;
+    background: #fdfcf9;
+  }
+  .atd-tab {
+    font-size: 11px;
+    color: #9b9890;
+  }
+  .atd-tab--on {
+    color: #4f7942;
+    font-weight: 700;
+  }
+</style>
