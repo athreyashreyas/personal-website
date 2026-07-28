@@ -86,16 +86,18 @@ function isCurrent(href: string) {
     .site-nav {
       flex-direction: column;
       align-items: stretch;
-      gap: 0.55rem;
-      padding-block: 1rem 1.15rem;
+      /* Tighter than before: the header is sticky on mobile, so keep the band
+         slim to preserve reading space. */
+      gap: 0.35rem;
+      padding-block: 0.6rem 0.7rem;
     }
 
     .nav-links {
       order: 2;
       justify-content: center;
-      gap: 0.5rem 1.15rem;
+      gap: 0.4rem 1.15rem;
       font-size: 1.04rem;
-      row-gap: 0.55rem;
+      row-gap: 0.4rem;
     }
 
     /* the theme toggle sits alone, aligned to the top-right */

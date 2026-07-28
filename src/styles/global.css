@@ -95,13 +95,14 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* No horizontal scroll anywhere — keeps the header/footer from drifting
-     sideways during scroll on mobile. */
-  overflow-x: hidden;
+  /* No horizontal scroll anywhere — keeps content from drifting sideways on
+     mobile. `clip` (not `hidden`) prevents overflow WITHOUT turning html/body
+     into scroll containers, which would break the sticky header below. */
+  overflow-x: clip;
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -387,6 +388,22 @@ li {
   max-width: var(--measure);
   margin-inline: auto;
   padding-inline: 1.5rem;
+}
+
+/* Sticky header on tablet & phone: the nav stays reachable while scrolling.
+   A full-width translucent band with a blur so content reads legibly beneath
+   it. Desktop keeps the header in normal flow (plenty of room there). The
+   progress bar (z-index 1000) still sits above this. */
+@media (max-width: 1024px) {
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
 }
 
 .wrap--wide {
