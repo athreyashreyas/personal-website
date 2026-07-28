@@ -161,6 +161,13 @@ function isCurrent(href: string) {
       height: 1.35rem;
       transition: color 0.2s ease;
     }
+    /* The serif label's glyphs sit above the line-box centre, so it reads high
+       next to the hamburger and toggle. Nudge just the text down to align the
+       three optically. */
+    .nav-dd-trigger span {
+      display: inline-block;
+      transform: translateY(1.5px);
+    }
     .nav-dd[open] .nav-dd-trigger,
     .nav-dd-trigger:hover {
       color: var(--accent-link);
