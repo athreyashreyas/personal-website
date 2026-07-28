@@ -140,11 +140,15 @@ main {
       fill 0.22s ease;
   }
 
-  /* No page-to-page cross-fade: the default root fade reads as a flicker.
-     Navigation progress is shown by the top loading bar instead. */
+  /* Kill the page-to-page animation entirely: the default root cross-fade
+     reads as a flicker, and the group morph slides/grows the container
+     between pages of different heights. Navigation progress is shown by the
+     top loading bar instead. Every root pseudo is disabled, including the
+     group, so nothing animates on swap. */
+  ::view-transition-group(root),
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation: none;
+    animation: none !important;
     mix-blend-mode: normal;
   }
 }
