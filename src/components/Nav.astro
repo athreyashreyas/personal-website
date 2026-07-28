@@ -130,32 +130,35 @@ function isCurrent(href: string) {
     }
 
     .nav-dd {
-      display: block;
+      display: flex;
+      align-items: center;
       position: relative;
     }
 
     .nav-dd-trigger {
       list-style: none;
+      list-style-type: none;
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 0.5rem;
+      /* Match the theme toggle's height so the two sit as a balanced pair,
+         vertically centred on the same line. */
+      height: 2.1rem;
       cursor: pointer;
       font-family: var(--font-serif);
-      font-size: 1.08rem;
+      font-size: 1.05rem;
+      line-height: 1;
       color: var(--text-secondary);
-      padding: 0.25rem 0.15rem;
+      padding: 0 0.1rem;
       -webkit-tap-highlight-color: transparent;
     }
     /* hide the native disclosure triangle */
     .nav-dd-trigger::-webkit-details-marker {
       display: none;
     }
-    .nav-dd-trigger {
-      list-style-type: none;
-    }
     .nav-dd-trigger svg {
-      width: 1.2rem;
-      height: 1.2rem;
+      width: 1.35rem;
+      height: 1.35rem;
       transition: color 0.2s ease;
     }
     .nav-dd[open] .nav-dd-trigger,

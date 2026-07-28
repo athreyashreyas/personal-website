@@ -420,6 +420,14 @@ li {
   }
 }
 
+/* Phone portrait: give the content a little air below the sticky header, so a
+   section title isn't clamped right against the header line. */
+@media (max-width: 640px) {
+  #main {
+    padding-top: 1rem;
+  }
+}
+
 .wrap--wide {
   max-width: var(--measure-wide);
 }
