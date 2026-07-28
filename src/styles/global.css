@@ -34,6 +34,13 @@
      at use-site, so this one declaration adapts to light/dark. */
   --hl: color-mix(in srgb, var(--accent-link) 42%, var(--bg));
 
+  /* Text selection: the brand green as the highlight, with the light-theme
+     ink as the text on top. Deliberately NOT re-declared per theme — in dark
+     mode we still want the dark ink (not the pale --text-primary) so the
+     glyphs read crisply against the green band. */
+  --selection-bg:   var(--accent-link);
+  --selection-text: #2B2420;
+
   /* Type */
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont,
@@ -118,6 +125,20 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Text selection (cursor drag AND touch highlight) picks up the brand green
+   instead of the OS blue. Split into two rules on purpose: grouping
+   ::selection with ::-moz-selection would let an unknown selector invalidate
+   the whole block in some engines. */
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-text);
+}
+
+::-moz-selection {
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 /* Sticky footer: main grows to fill so the footer always reaches the
