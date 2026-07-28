@@ -28,13 +28,24 @@
     );
     cursor: pointer;
     box-shadow: var(--toggle-shadow);
+    -webkit-tap-highlight-color: transparent;
     transition:
-      box-shadow 0.2s ease,
+      /* glow swells in slowly and settles, like a lamp warming up */
+      box-shadow 0.6s cubic-bezier(0.25, 0.8, 0.35, 1),
       transform 0.2s ease;
   }
 
   .theme-toggle:hover {
     transform: translateY(-1px) scale(1.04);
     box-shadow: var(--toggle-shadow-hover);
+  }
+
+  /* Dimmer glow in dark mode so the toggle doesn't over-luminesce. */
+  :global(html[data-theme='dark']) .theme-toggle {
+    box-shadow: 0 0 6px rgba(242, 238, 228, 0.16);
+  }
+
+  :global(html[data-theme='dark']) .theme-toggle:hover {
+    box-shadow: 0 0 10px rgba(242, 238, 228, 0.26);
   }
 </style>

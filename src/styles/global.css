@@ -273,8 +273,12 @@ h1 {
   display: inline;
   background-image: linear-gradient(var(--hl), var(--hl));
   background-repeat: no-repeat;
-  background-size: 100% 0.9em;
-  background-position: 0 85%;
+  /* Band covers only the bottom ~half of the letters, anchored to the
+     baseline — a lower, thinner "underline-highlight". Two knobs to taste:
+     background-size height (how tall the band is) and background-position
+     (how low it sits). */
+  background-size: 100% 0.4em;
+  background-position: 0 82%;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   padding: 0 0.05em;
