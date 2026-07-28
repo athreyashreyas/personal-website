@@ -3,39 +3,44 @@ title: Ritu Sharma Art
 description: A watercolour & oil painting portfolio and sales site the artist can run entirely herself.
 status: active
 date: 2024-11-15
-links: {}
+links: { live: 'https://ritu-sharma-art.vercel.app/' }
 ---
 
+import RituHomeStill from '../../components/stills/RituHomeStill.astro';
 import RituStill from '../../components/stills/RituStill.astro';
 
-A portfolio and sales website for a watercolour and oil painter. It has a
-homepage with a latest-work gallery preview and an artist statement, a filterable
-masonry gallery (`/artworks`) by medium, availability and price, full artwork
-pages with the story behind each piece and an inquiry form, and About, Contact
-(with commission requests) and Exhibitions pages.
+You land on a single painting, full bleed, with its title and medium and one
+quiet invitation to see it up close. There's no hero copy or carousel competing
+with the work; the newest piece simply fills the screen and changes as she adds
+to the collection.
+
+<RituHomeStill />
+
+## Browsing, and buying
+
+From there the Gallery is the heart of it: every original, in a masonry grid you
+can narrow by medium, collection, price, and whether a piece is still available.
+Tap any painting and you get its full page, the story behind it, and a way to
+enquire or commission. It's built to make a small catalogue feel considered
+rather than a wall of thumbnails.
 
 <RituStill />
 
-The real design constraint wasn't the front end. It was who maintains it. The
-artist needed to add and sell paintings, and edit her own About page, with no
-technical knowledge and no phone call to me. So the CMS is a Sanity Studio
-embedded at `/studio`, with no separate deployment; images go through Cloudinary;
-and there's a plain-language guide that walks her through adding a painting from
-start to finish. If the site needs a developer to update it, the brief has
-failed.
+## The real constraint
 
-## The decisions worth noting
+The hard part was never the front end. It was who maintains it. Ritu needed to
+add and sell paintings, and edit her own About page, with no technical knowledge
+and no phone call to me. So the CMS is a Sanity Studio embedded right in the site,
+images go through Cloudinary, and there's a plain-language guide that walks her
+through adding a painting from start to finish. If the site needs a developer to
+update it, the brief has failed.
 
-The site runs out of the box with empty placeholder content, so the whole
-interface could be built and reviewed before any real backend was wired up.
-Connecting Sanity and Cloudinary is what lights up the actual gallery and the
-emails. SEO got real attention too, with per-page metadata, dynamic OG images,
-`VisualArtwork` and `Person` JSON-LD, and a sitemap and robots file, because a
-painter's site nobody can find isn't doing its one job. The escape hatches are
-written down as well: a runbook for moving off any provider (Cloudinary
-especially) without re-uploading every image by hand, and a staged
-image-hardening playbook left deliberately switched off, so images stay full
-quality until traffic actually justifies compressing them.
+A few decisions followed from that. The whole interface runs out of the box on
+placeholder content, so it could be built and reviewed before any backend was
+wired up. SEO got real attention, with per-page metadata, dynamic OG images and
+structured data, because a painter's site nobody can find isn't doing its one
+job. And the escape hatches are written down: a runbook for moving off any
+provider without re-uploading every image by hand, so she's never locked in.
 
-Built on Next.js 16 (App Router), React 19, Sanity v6, Cloudinary, Tailwind, with
-Resend for inquiry emails (falling back to server logs when it's not configured).
+Built on Next.js 16 (App Router), React 19, Sanity v6, Cloudinary, and Tailwind,
+with Resend for the inquiry emails.

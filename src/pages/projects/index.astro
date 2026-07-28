@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectLinks from '../../components/ProjectLinks.astro';
+import ProjectLogo from '../../components/ProjectLogo.astro';
 
 const projects = (await getCollection('projects')).sort((a, b) => {
   const at = a.data.date?.getTime() ?? 0;
@@ -21,6 +22,7 @@ const projects = (await getCollection('projects')).sort((a, b) => {
       projects.map((project) => (
         <li>
           <div class="row">
+            <ProjectLogo slug={project.id} size={40} />
             <a class="name" href={`/projects/${project.id}`}>
               {project.data.title}
             </a>
@@ -68,7 +70,7 @@ const projects = (await getCollection('projects')).sort((a, b) => {
 
   .row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
   }

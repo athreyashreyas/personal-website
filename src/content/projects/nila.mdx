@@ -7,36 +7,39 @@ links: { repo: 'https://github.com/athreyashreyas/nila' }
 ---
 
 import NilaStill from '../../components/stills/NilaStill.astro';
+import NilaCheckinStill from '../../components/stills/NilaCheckinStill.astro';
 
-Nila is a privacy-first menstrual cycle tracking PWA for iPhone and iPad. Given
-what period-tracking data has been used for, the design starts from a hard
-constraint: the server must never be able to read a single health detail. Not a
-period date, not a symptom, not a mood, not a note.
+Nila opens on where you are right now. One ring, coloured by the phase you're in
+and filled to how far through the cycle you've come, with today marked on it and
+the day-in-phase at the centre. Underneath, a plain prediction: period expected
+in about nine days.
 
 <NilaStill />
 
+Every bit of that is worked out on your device. Given what period-tracking data
+has been used for, Nila starts from a hard rule: the server must never be able to
+read a single health detail, which means the predictions can't be computed
+anywhere but on your own phone.
+
+## Logging a day
+
+A check-in is a few taps: mood, energy, flow, whatever symptoms showed up, and a
+note if you want one. Over time those feed the pattern cards back on the home
+screen, the quiet "you tend to log cramps in your luteal phase" kind of
+observation. Each entry is encrypted on the device before it ever syncs.
+
+<NilaCheckinStill />
+
 ## Zero-knowledge by construction
 
-The master key is derived from your password with PBKDF2 (600k iterations) and
-never leaves the device. Every cycle and daily log is AES-256-GCM encrypted on
-the client; the server stores only a random UUID and an encrypted blob, plus the
-PBKDF2 salt and a wrapped master key. A 12-word BIP39 recovery phrase covers
-account recovery without the password, and the same password unlocks the same
-data across iPhone and iPad. "We don't look at your data" is a promise; *the
-server structurally cannot* is an architecture, and Nila is the second.
+The master key is derived from your password with PBKDF2 and never leaves the
+device. Every cycle and daily log is AES-256-GCM encrypted on the client; the
+server stores only a random id and an encrypted blob, nothing more. A 12-word
+recovery phrase gets you back in without the password, and the same password
+unlocks the same data on iPhone and iPad. "We don't look at your data" is a
+promise; Nila is built so that the server structurally cannot.
 
-## The tracking itself
-
-There's a four-phase cycle model (period, follicular, ovulation, luteal) with
-confidence-weighted prediction from your history, and a five-state period status
-(none, approaching, late, active-started-today, active-ongoing) where each state
-gets its own home-screen treatment. Predictions recalculate automatically
-whenever cycles are added, edited, ended, or removed. Daily check-ins for mood,
-energy, flow, symptoms and notes feed pattern-aware insight cards (*"you tend to
-log cramps in your luteal phase"*), alongside a scrubable hormone graph and
-phase-aware food and movement suggestions.
-
-Built on Next.js 16 (App Router) and TypeScript, Tailwind v4 and Framer Motion,
+Built on Next.js 16 (App Router) and TypeScript, Tailwind and Framer Motion,
 Supabase for auth and encrypted storage only, and the `@noble` and `@scure`
-libraries for the crypto. Installable, offline-capable, with a dark, light and
-system theme that syncs across devices, and iOS push for period reminders.
+libraries for the crypto. Installable, offline-capable, with a theme that syncs
+across devices and iOS push for period reminders.

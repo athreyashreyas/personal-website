@@ -3,41 +3,50 @@ title: Attend
 description: A local-first attendance tracker that tells you exactly how many classes you can still afford to miss.
 status: active
 date: 2025-04-10
-links: { repo: 'https://github.com/athreyashreyas/attendance-tracker' }
+links:
+  {
+    repo: 'https://github.com/athreyashreyas/attendance-tracker',
+    live: 'https://attendance-tracker-two-chi.vercel.app/',
+  }
 ---
 
 import AttendStill from '../../components/stills/AttendStill.astro';
+import AttendQuickMarkStill from '../../components/stills/AttendQuickMarkStill.astro';
 
-Attend keeps every class above its attendance line, without the spreadsheet. Add
-your classes, mark each session with a tap, and it tells you where you actually
-stand: how many you can still miss, how many you'd need in a row to recover, and
-where you'll land by the end of term.
+You open Attend to answer one question: am I still fine to skip tomorrow? The
+dashboard answers it per class. Each card gives you the percentage as a ring and,
+next to it, a plain-language badge that has already done the projection for you:
+*can miss 3 of 8 left*, *attend all 4 left*, or a red *below 75%* when you've
+slipped under the line.
 
 <AttendStill />
 
-The idea that shaped everything is that the class is the unit, not the semester.
-A degree subject can sit under a semester, but a dance class or a hobby can stand
-on its own. That one decision is why the same app works for a university
-timetable and a twice-a-week pottery class, and it's the thing most attendance
-apps get wrong by assuming everyone's life is neatly divided into terms.
+That badge is the whole point. Your current percentage is history; what actually
+matters is the number you'll finish the term on. Attend counts the sessions still
+to come, works out the best and worst you can land on, and says it in words, so
+you're not doing arithmetic in your head at the back of a lecture hall.
 
-## Looking forward, not just back
+## Marking, in the corridor
 
-The number that matters isn't your current percentage. It's the projection.
-Attend works out the classes still to come and the best and worst you can finish
-on, then turns that into plain guidance: you can miss 3 more, or attend 4 in a
-row to recover. You can also drop a class onto a future day as "scheduled" and
-decide later how it actually went; planned classes never touch your percentage
-until you mark them. When a holiday or exam week comes up, you can cancel a date
-range across every class at once, and cancelled sessions drop out of the maths
-automatically.
+Marking is meant to happen the moment a class ends, so it gets its own flow. Tap
+the "mark today" banner and Attend hands you one class at a time: the name, the
+time, and two big buttons. Present or Absent, then the next one slides in. If a
+class got cancelled you say so and it drops out of the maths instead of counting
+against you.
 
-## Local-first, native-feeling
+<AttendQuickMarkStill />
 
-Reads come straight from Dexie (IndexedDB), so the app is instant and fully
-usable with no signal; edits sync to your own Supabase account in the background.
-It's built with Vite, React and TypeScript (strict), with Tailwind and Framer
-Motion for the feel, a sidebar rail on iPad and a bottom tab bar on phones, all
-safe-area aware. It installs to the home screen and works offline by default. The
-whole point is that you can mark a class as you walk out of the room, on the
-subway, with no connection.
+## The class is the unit
+
+The decision that shaped everything is that the class is the unit, not the
+semester. A degree subject can sit under a semester, but a dance class or a hobby
+stands on its own, which is why the same app fits a university timetable and a
+twice-a-week pottery class. Most attendance apps get this wrong by assuming
+everyone's life divides neatly into terms.
+
+Under the hood it's local-first: reads come straight from Dexie (IndexedDB), so
+it opens instantly and works with no signal, while edits sync to your own
+Supabase account in the background. Vite, React and strict TypeScript, with a
+sidebar rail on iPad and a bottom tab bar on phones. It installs to the home
+screen and works offline by default, because the whole point is marking a class
+as you walk out of the room.

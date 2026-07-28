@@ -7,8 +7,10 @@ interface Props {
   variant?: 'phone' | 'browser';
   label?: string;
   url?: string;
+  /** Overlay a transparent guard to deter casual right-click-save / drag. */
+  protect?: boolean;
 }
-const { variant = 'phone', label, url } = Astro.props;
+const { variant = 'phone', label, url, protect = false } = Astro.props;
 ---
 
 <figure class={`still still--${variant}`}>
@@ -23,8 +25,9 @@ const { variant = 'phone', label, url } = Astro.props;
         </div>
       )
     }
-    <div class="still-screen">
+    <div class={`still-screen${protect ? ' is-protected' : ''}`}>
       <slot />
+      {protect && <span class="still-guard" aria-hidden="true" />}
     </div>
   </div>
   {label && <figcaption>{label}</figcaption>}
@@ -33,6 +36,25 @@ const { variant = 'phone', label, url } = Astro.props;
 <style>
   .still {
     margin: 2.25rem 0;
+  }
+
+  /* Deterrent for protected shots: the guard sits over the image and swallows
+     right-click / drag, so "Save image as" and drag-to-desktop don't grab the
+     art. (Screenshots can't be prevented; the served file is also low-res.) */
+  .still-screen.is-protected {
+    position: relative;
+  }
+  .still-screen.is-protected :global(img) {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+  .still-guard {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: transparent;
   }
 
   /* Phone */
@@ -53,15 +75,20 @@ const { variant = 'phone', label, url } = Astro.props;
     background: #fff;
   }
 
-  /* Browser */
+  /* Browser. Interior is a FIXED white (not a theme token) so the frame reads
+     the same in light and dark and never shows a dark band around the shot. */
   .still--browser .still-device {
     width: 640px;
     max-width: 100%;
     margin-inline: auto;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: 1px solid #d9d4c9;
+    background: #ffffff;
     box-shadow: 0 22px 45px -16px rgba(0, 0, 0, 0.4);
+  }
+  .still--browser .still-screen {
+    background: #ffffff;
   }
   .still-chrome {
     display: flex;

@@ -1,0 +1,30 @@
+---
+// Ritu Sharma Art — a real screenshot of the live homepage hero (a full-bleed
+// painting with its title and medium), captured from ritu-sharma-art.vercel.app
+// and framed as a browser window.
+import StillFrame from './StillFrame.astro';
+---
+
+<StillFrame
+  variant="browser"
+  url="ritu-sharma-art.vercel.app"
+  label="The landing: one painting, full bleed, that changes as the collection does"
+  protect
+>
+  <img
+    class="ritu-shot"
+    src="/project-shots/ritu-home.jpg"
+    width="1600"
+    height="1075"
+    loading="lazy"
+    alt="The Ritu Sharma Art homepage: a full-bleed painting titled Mahadev with the site navigation."
+  />
+</StillFrame>
+
+<style>
+  .ritu-shot {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

@@ -1,71 +1,78 @@
 ---
-// Harmony — the Bloom. Palette from the app: warm parchment, terracotta "iris"
-// and sage. Each petal is one area of life; its length shows how tended it is.
+// Harmony — the real Bloom home, reconstructed from src/components/Bloom/Bloom.tsx
+// + HomeScreen.tsx. Each petal is a donut-segment wedge (inner radius 22, outer
+// 80) that fills outward with how tended its area of life is. Dialled down.
 import StillFrame from './StillFrame.astro';
 
-// Six petals around the centre. length: 0..1 (how grown), each its own hue.
-const petals = [
-  { angle: 0, len: 1.0, color: '#b5532f', label: 'Movement' },
-  { angle: 60, len: 0.72, color: '#47602a', label: 'Craft' },
-  { angle: 120, len: 0.9, color: '#c98f3e', label: 'Mind' },
-  { angle: 180, len: 0.55, color: '#c9714a', label: 'Rest' },
-  { angle: 240, len: 0.82, color: '#6e9b61', label: 'People' },
-  { angle: 300, len: 0.4, color: '#b85c72', label: 'Money' },
+const SIZE = 220,
+  C = 110,
+  MIN = 22,
+  MAX = 80,
+  GAP = 4;
+
+const areas = [
+  { name: 'Movement', color: '#b5532f', activity: 1.0 },
+  { name: 'Mind', color: '#c98f3e', activity: 0.72 },
+  { name: 'Craft', color: '#47602a', activity: 0.9 },
+  { name: 'Rest', color: '#5b6b7a', activity: 0.5 },
+  { name: 'People', color: '#7a5a8a', activity: 0.82 },
+  { name: 'Money', color: '#b85c72', activity: 0.4 },
 ];
-const cx = 150;
-const cy = 150;
+const slice = 360 / areas.length;
+
+function pt(r: number, deg: number) {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return [C + r * Math.cos(a), C + r * Math.sin(a)];
+}
+function seg(ri: number, ro: number, a0: number, a1: number) {
+  const [x0o, y0o] = pt(ro, a0);
+  const [x1o, y1o] = pt(ro, a1);
+  const [x1i, y1i] = pt(ri, a1);
+  const [x0i, y0i] = pt(ri, a0);
+  const large = a1 - a0 > 180 ? 1 : 0;
+  return `M${x0o} ${y0o} A${ro} ${ro} 0 ${large} 1 ${x1o} ${y1o} L${x1i} ${y1i} A${ri} ${ri} 0 ${large} 0 ${x0i} ${y0i} Z`;
+}
+const petals = areas.map((a, i) => {
+  const a0 = i * slice + GAP / 2;
+  const a1 = (i + 1) * slice - GAP / 2;
+  return {
+    ...a,
+    track: seg(MIN, MAX, a0, a1),
+    fill: seg(MIN, MIN + (MAX - MIN) * a.activity, a0, a1),
+  };
+});
 ---
 
-<StillFrame variant="phone" label="Harmony — the Bloom, your week as one living flower">
+<StillFrame variant="phone" label="The Bloom: your whole week as one flower, one petal per area of life">
   <div class="hmy">
-    <header class="hmy-top">
-      <p class="hmy-kicker">This week</p>
-      <h3 class="hmy-title">Your bloom</h3>
-    </header>
+    <p class="hmy-date">Friday, 28 July</p>
+    <h3 class="hmy-greet">Good evening.</h3>
 
-    <svg class="hmy-bloom" viewBox="0 0 300 300" role="img" aria-label="A radial bloom of six petals">
-      {
-        petals.map((p) => {
-          const ry = 30 + p.len * 66;
-          const petalCy = cy - ry - 20;
-          return (
-            <ellipse
-              cx={cx}
-              cy={petalCy}
-              rx={26}
-              ry={ry}
-              fill={p.color}
-              opacity={0.42 + p.len * 0.5}
-              transform={`rotate(${p.angle} ${cx} ${cy})`}
-            />
-          );
-        })
-      }
-      <circle cx={cx} cy={cy} r={30} fill="#944021" />
-      <circle cx={cx} cy={cy} r={30} fill="url(#hmyCore)" />
-      <defs>
-        <radialGradient id="hmyCore" cx="40%" cy="35%">
-          <stop offset="0%" stop-color="#f6e0cf" stop-opacity="0.85" />
-          <stop offset="55%" stop-color="#c9714a" stop-opacity="0.15" />
-          <stop offset="100%" stop-color="#944021" stop-opacity="0" />
-        </radialGradient>
-      </defs>
-    </svg>
-
-    <ul class="hmy-legend">
+    <svg class="hmy-bloom" viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label="A bloom of six petals">
       {
         petals.map((p) => (
-          <li>
-            <span class="hmy-dot" style={`background:${p.color}`} />
-            {p.label}
-          </li>
+          <>
+            <path d={p.track} fill={p.color} fill-opacity="0.13" />
+            <path d={p.fill} fill={p.color} fill-opacity="0.87" />
+          </>
         ))
       }
-    </ul>
+      <circle cx={C} cy={C} r="20" fill="#fbf1e4" />
+      <circle cx={C} cy={C} r="20" fill="#b5532f" fill-opacity="0.08" />
+    </svg>
 
-    <p class="hmy-tug">
-      <span class="hmy-tug-dot"></span> Late nights, eased twice this week
-    </p>
+    <div class="hmy-chips">
+      {
+        areas.slice(0, 4).map((a) => (
+          <span class="hmy-chip">
+            <span class="hmy-chip-dot" style={`background:${a.color}`} />
+            {a.name}
+          </span>
+        ))
+      }
+    </div>
+
+    <p class="hmy-note">A few areas waiting for you.</p>
   </div>
 </StillFrame>
 
@@ -76,66 +83,49 @@ const cy = 150;
     padding: 18px 16px 20px;
     font-family: system-ui, -apple-system, sans-serif;
   }
-  .hmy-top {
-    text-align: center;
-  }
-  .hmy-kicker {
+  .hmy-date {
     margin: 0;
-    font-size: 10px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    font-size: 12px;
     color: #ab977a;
   }
-  .hmy-title {
+  .hmy-greet {
     margin: 2px 0 0;
     font-family: Georgia, 'Times New Roman', serif;
     font-weight: 400;
-    font-size: 21px;
+    font-size: 23px;
     color: #23190f;
   }
   .hmy-bloom {
     display: block;
-    width: 200px;
-    height: 200px;
-    margin: 6px auto 4px;
+    width: 205px;
+    height: 205px;
+    margin: 8px auto 2px;
   }
-  .hmy-legend {
-    list-style: none;
-    margin: 4px 0 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 7px 8px;
-  }
-  .hmy-legend li {
+  .hmy-chips {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .hmy-chip {
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     font-size: 11px;
     color: #76654c;
+    background: #fbf1e4;
+    padding: 4px 10px;
+    border-radius: 999px;
   }
-  .hmy-dot {
+  .hmy-chip-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    flex: none;
   }
-  .hmy-tug {
-    margin: 14px 0 0;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11px;
-    color: #94502f;
-    background: #f6e0cf;
-    padding: 8px 11px;
-    border-radius: 10px;
-  }
-  .hmy-tug-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #b5532f;
-    flex: none;
+  .hmy-note {
+    margin: 13px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: #ab977a;
   }
 </style>

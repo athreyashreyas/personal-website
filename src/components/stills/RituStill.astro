@@ -1,168 +1,30 @@
 ---
-// Ritu Sharma Art — the filterable gallery. Palette from the app: warm canvas,
-// charcoal ink, dusty-mauve accent, olive "available" tag. Paintings are stood
-// in with soft washes so the still stays honest about being a mockup.
+// Ritu Sharma Art — a real screenshot of the live gallery (the /artworks page),
+// captured from ritu-sharma-art.vercel.app and framed as a browser window. Real
+// paintings, real filter bar, rather than a reconstruction.
 import StillFrame from './StillFrame.astro';
-
-const works = [
-  { h: 116, wash: 'linear-gradient(160deg,#c4d6e0,#8ba7b8)', title: 'Low Tide', tag: 'Available', price: '₹18,000' },
-  { h: 92, wash: 'linear-gradient(160deg,#e7cdb0,#c98f6e)', title: 'Afternoon Window', tag: null, price: 'Sold' },
-  { h: 150, wash: 'linear-gradient(160deg,#d9c6df,#9a7bb0)', title: 'Monsoon Study', tag: 'Available', price: '₹24,000' },
-  { h: 104, wash: 'linear-gradient(160deg,#c4e0d3,#7fae8e)', title: 'Garden Wall', tag: 'Available', price: '₹15,000' },
-  { h: 132, wash: 'linear-gradient(160deg,#e6d5b8,#c2a25f)', title: 'Harvest', tag: null, price: 'Sold' },
-  { h: 88, wash: 'linear-gradient(160deg,#e3c3c8,#b57f88)', title: 'Still Life, Figs', tag: 'Available', price: '₹12,000' },
-];
 ---
 
-<StillFrame variant="browser" url="ritusharma.art/artworks" label="Ritu Sharma Art — the gallery the artist maintains herself">
-  <div class="rsa">
-    <header class="rsa-head">
-      <div class="rsa-brand">
-        <p class="rsa-name">Ritu Sharma</p>
-        <p class="rsa-role">Watercolour &amp; oil</p>
-      </div>
-      <nav class="rsa-nav">
-        <span class="rsa-nav-on">Works</span>
-        <span>About</span>
-        <span>Exhibitions</span>
-        <span>Contact</span>
-      </nav>
-    </header>
-
-    <div class="rsa-filters">
-      <span class="rsa-chip rsa-chip--on">All</span>
-      <span class="rsa-chip">Watercolour</span>
-      <span class="rsa-chip">Oil</span>
-      <span class="rsa-chip rsa-chip--ghost">Available only</span>
-    </div>
-
-    <div class="rsa-masonry">
-      {
-        works.map((w) => (
-          <figure class="rsa-card">
-            <div class="rsa-art" style={`height:${w.h}px;background:${w.wash}`} />
-            <figcaption>
-              <span class="rsa-title">{w.title}</span>
-              <span class={`rsa-price ${w.tag ? '' : 'rsa-price--sold'}`}>{w.price}</span>
-              {w.tag && <span class="rsa-avail">{w.tag}</span>}
-            </figcaption>
-          </figure>
-        ))
-      }
-    </div>
-  </div>
+<StillFrame
+  variant="browser"
+  url="ritu-sharma-art.vercel.app/artworks"
+  label="The gallery: filterable by medium, price and availability, and hers to run"
+  protect
+>
+  <img
+    class="ritu-shot"
+    src="/project-shots/ritu-gallery.jpg"
+    width="1600"
+    height="1250"
+    loading="lazy"
+    alt="The Ritu Sharma Art portfolio page: a filter bar over a masonry grid of original paintings."
+  />
 </StillFrame>
 
 <style>
-  .rsa {
-    background: #faf8f4;
-    color: #44403c;
-    padding: 16px 18px 20px;
-    font-family: system-ui, -apple-system, sans-serif;
-  }
-  .rsa-head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e8e4de;
-  }
-  .rsa-name {
-    margin: 0;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 20px;
-    color: #44403c;
-  }
-  .rsa-role {
-    margin: 1px 0 0;
-    font-size: 10.5px;
-    letter-spacing: 0.04em;
-    color: #8a8078;
-  }
-  .rsa-nav {
-    display: flex;
-    gap: 15px;
-    font-size: 12px;
-    color: #5a534c;
-  }
-  .rsa-nav-on {
-    color: #987776;
-    font-weight: 600;
-  }
-
-  .rsa-filters {
-    display: flex;
-    gap: 7px;
-    margin: 13px 0;
-  }
-  .rsa-chip {
-    font-size: 11px;
-    color: #5a534c;
-    background: #f2eee8;
-    padding: 4px 11px;
-    border-radius: 999px;
-  }
-  .rsa-chip--on {
-    background: #987776;
-    color: #faf8f4;
-  }
-  .rsa-chip--ghost {
-    background: transparent;
-    border: 1px solid #d4cec8;
-    color: #8a8078;
-  }
-
-  .rsa-masonry {
-    columns: 3;
-    column-gap: 10px;
-  }
-  .rsa-card {
-    break-inside: avoid;
-    margin: 0 0 10px;
-    background: #fff;
-    border: 1px solid #e8e4de;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .rsa-art {
+  .ritu-shot {
+    display: block;
     width: 100%;
-  }
-  .rsa-card figcaption {
-    padding: 7px 8px 8px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 3px 6px;
-  }
-  .rsa-title {
-    font-family: Georgia, serif;
-    font-size: 12px;
-    color: #44403c;
-    width: 100%;
-  }
-  .rsa-price {
-    font-size: 11px;
-    color: #5a534c;
-  }
-  .rsa-price--sold {
-    color: #b1a89e;
-  }
-  .rsa-avail {
-    font-size: 9px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #56663f;
-    background: rgba(128, 149, 109, 0.18);
-    padding: 2px 6px;
-    border-radius: 999px;
-  }
-
-  @media (max-width: 520px) {
-    .rsa-masonry {
-      columns: 2;
-    }
-    .rsa-nav {
-      display: none;
-    }
+    height: auto;
   }
 </style>

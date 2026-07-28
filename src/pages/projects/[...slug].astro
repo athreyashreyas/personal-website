@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectLinks from '../../components/ProjectLinks.astro';
+import ProjectLogo from '../../components/ProjectLogo.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -19,8 +20,24 @@ const { title, description, status, links } = project.data;
 <BaseLayout title={title} description={description}>
   <article>
     <header class="project-head">
-      <p class="meta"><a href="/projects">Projects</a></p>
+      <p class="meta">
+        <a class="back-link" href="/projects">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.9"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          Go back to all projects
+        </a>
+      </p>
       <div class="title-row">
+        <ProjectLogo slug={project.id} size={54} />
         <h1><span class="hl-title">{title}</span></h1>
         {status && <span class="status">{status}</span>}
       </div>
@@ -47,12 +64,34 @@ const { title, description, status, links } = project.data;
 
   .title-row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.85rem;
     flex-wrap: wrap;
   }
   .title-row h1 {
     margin-bottom: 0;
+  }
+
+  /* Breadcrumb back-link with a leading arrow. */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .back-link svg {
+    width: 1em;
+    height: 1em;
+  }
+  .back-link:hover {
+    color: var(--accent-link);
+    text-decoration: none;
+  }
+  /* Nudge the arrow left on hover, so the "go back" reads as motion. */
+  .back-link:hover svg {
+    transform: translateX(-2px);
+    transition: transform 0.15s ease;
   }
 
   .status {

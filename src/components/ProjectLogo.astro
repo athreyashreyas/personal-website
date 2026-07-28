@@ -1,0 +1,63 @@
+---
+// A project's real app icon (copied from each repo into /public/project-logos).
+// Titular by default (a plain mark next to the title); pass `href` to make it a
+// link to the live app, with the footer-style green glow on hover.
+interface Props {
+  slug: string;
+  href?: string;
+  size?: number;
+}
+const { slug, href, size = 52 } = Astro.props;
+
+const files: Record<string, string> = {
+  attend: 'attend.png',
+  harmony: 'harmony.png',
+  hisaab: 'hisaab.svg',
+  nila: 'nila.png',
+  'ritu-sharma-portfolio': 'ritu.png',
+};
+const file = files[slug];
+const src = file ? `/project-logos/${file}` : '';
+---
+
+{
+  src &&
+    (href ? (
+      <a
+        class="proj-logo"
+        href={href}
+        target="_blank"
+        rel="noopener"
+        aria-label="Open the live app (new tab)"
+      >
+        <img src={src} width={size} height={size} alt="" />
+      </a>
+    ) : (
+      <span class="proj-logo">
+        <img src={src} width={size} height={size} alt="" />
+      </span>
+    ))
+}
+
+<style>
+  .proj-logo {
+    display: inline-flex;
+    flex: none;
+    line-height: 0;
+  }
+  .proj-logo img {
+    display: block;
+    border-radius: 13px;
+  }
+  a.proj-logo {
+    transition:
+      filter 0.2s ease,
+      transform 0.2s ease;
+  }
+  a.proj-logo:hover,
+  a.proj-logo:focus-visible {
+    transform: translateY(-1px);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-link) 70%, transparent))
+      drop-shadow(0 0 14px color-mix(in srgb, var(--accent-link) 40%, transparent));
+  }
+</style>

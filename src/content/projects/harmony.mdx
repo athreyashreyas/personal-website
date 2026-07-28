@@ -1,50 +1,51 @@
 ---
 title: Harmony
-description: A habit tracker built on the premise that your habits are how you return to yourself — not tasks you're failing at.
+description: A habit tracker built on the premise that your habits are how you return to yourself, not tasks you're failing at.
 status: active
 date: 2025-05-01
-links: { repo: 'https://github.com/athreyashreyas/harmony' }
+links:
+  {
+    repo: 'https://github.com/athreyashreyas/harmony',
+    live: 'https://harmony-8wn.pages.dev/',
+  }
 ---
 
 import HarmonyStill from '../../components/stills/HarmonyStill.astro';
+import HarmonyTodayStill from '../../components/stills/HarmonyTodayStill.astro';
 
 Most habit trackers run on shame: a streak you can break, a plant that dies if
-you skip a day, a score that ticks down. Harmony has none of that. No streaks, no
-shame, no plant pets, no score. The premise is the opposite. Your habits are how
-you return to yourself, and one missed day should never read as failure.
+you skip a day, a score that ticks down. Harmony has none of that. It opens on
+the Bloom, your whole week drawn as one flower with a petal for each area of your
+life. Tend an area and its petal grows outward; leave it and the petal quietly
+eases back. It reads a rolling two-week window, so one missed day barely moves
+anything.
 
 <HarmonyStill />
 
-## The Bloom
+There's no number going down anywhere. A petal's length is just how tended that
+area has been lately, weighted by how much it matters to you, so the flower leans
+on its own toward the parts of life you said you cared about most.
 
-The centre of the app is a soft radial visual called the Bloom, your week drawn
-as a living flower with one petal per area of life. A petal grows as you tend
-that area and eases back when it goes untended. It reads a rolling two-week
-window, recalculated daily, so a single missed day barely moves it.
+## A day at a time
 
-Two things shape a petal. One is how much the area matters to you: lower-stakes
-areas fill more readily, which pulls the eye toward the things you said matter
-most. The other is how each habit inside it is doing, weighted the way you
-choose. There are also Tugs, negative habits you want to ease off. They're never
-scheduled; you just note them on the days they happen and they gently pull an
-area back, so a week honestly shows both the lift and the drag.
+The daily view is the other half of it. Each habit is a round check with its
+area's colour sitting underneath, and tapping it feeds the matching petal. The
+habits you want *less* of live in their own "ease off" section as Tugs. You never
+schedule those; you just note them on the days they happen, and they gently pull
+an area back, so a week honestly shows both the lift and the drag.
+
+<HarmonyTodayStill />
 
 ## Under the hood
 
 Harmony is a PWA: React and TypeScript on Vite, with Dexie (IndexedDB) as the
-source of truth on each device. Writes mirror to Supabase and, when offline,
-queue in a durable outbox that flushes on reconnect; live changes arrive over
-Supabase Realtime with focus, online and poll backstops and an authoritative pull
-on sign-in. Push notifications land within about a minute of the time you set,
-delivered by a separate Cloudflare Worker that signs VAPID and `aes128gcm`
-payloads with the Web Crypto API, with no Node crypto dependency.
+source of truth on each device and writes mirrored to Supabase, queued in a
+durable offline outbox that flushes on reconnect. Push notifications come from a
+separate Cloudflare Worker that signs its own VAPID payloads with the Web Crypto
+API, no Node crypto anywhere.
 
-The one decision I'd defend hardest is keeping the scheduling and drift engine
-single-sourced in a shared package, re-exported as thin shims into both the web
-app and the push worker. The rule that decides whether a habit is due today has
-to be byte-identical in both places, or reminders quietly fire on the wrong days.
-Duplicating it would have been faster to write and a nightmare to trust.
-
-> *Retrospective to backfill: the honest account of what the drift model got
-> wrong before it settled. This is the interesting part, and only I can write it
-> truthfully.*
+The one decision I'd defend hardest is keeping the scheduling and drift engine in
+a single shared package, used by both the app and the push worker. The rule that
+decides whether a habit is due today has to be byte-identical in both places, or
+reminders quietly fire on the wrong days. Duplicating it would have been faster
+to write and a nightmare to trust.

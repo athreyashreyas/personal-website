@@ -1,52 +1,72 @@
 ---
-// Attend — term overview screen. Palette from the app: parchment / ink / sage,
-// with amber and rose for at-risk classes. Serif display for numbers.
+// Attend — the real Dashboard, reconstructed from src/pages/DashboardPage.tsx +
+// CourseCard.tsx: the sage "mark today" banner, semester filter tabs, and one
+// card per class (colour bar, projection badge, ProgressRing). Dialled down.
 import StillFrame from './StillFrame.astro';
+
+const courses = [
+  { name: 'Data Structures', bar: '#1e7f75', pct: 92, tone: 'green', badge: 'Can miss 3 of 8 left' },
+  { name: 'Pottery', bar: '#c98f3e', pct: 78, tone: 'amber', badge: 'Attend all 4 left' },
+  { name: 'French A2', bar: '#b85c72', pct: 71, tone: 'rose', badge: 'Below 75%' },
+];
+const ringColor: Record<string, string> = { green: '#4f7942', amber: '#c98f3e', rose: '#b85c72' };
+const badgeBg: Record<string, string> = { green: '#e8f0e6', amber: '#f5e9d6', rose: '#f3e2e6' };
+const badgeFg: Record<string, string> = { green: '#2d4a2e', amber: '#8a5a1c', rose: '#8f3547' };
 ---
 
-<StillFrame variant="phone" label="Attend — every class, and how much room you have left">
+<StillFrame variant="phone" label="Dashboard: every class, with how much room you have left">
   <div class="atd">
-    <header class="atd-top">
-      <div>
-        <p class="atd-kicker">Spring term</p>
-        <h3 class="atd-title">Attend</h3>
-      </div>
-      <span class="atd-avatar">SA</span>
+    <header class="atd-head">
+      <h3 class="atd-title">Attend</h3>
+      <p class="atd-sub">All classes</p>
     </header>
 
-    <div class="atd-hero">
-      <p class="atd-hero-name">Data Structures</p>
-      <p class="atd-hero-pct">92%</p>
-      <p class="atd-hero-note">You can miss 3 more and stay above 85%.</p>
-      <div class="atd-bar"><span style="width:92%"></span></div>
+    <div class="atd-tabs">
+      <span class="atd-t atd-t--on">All</span>
+      <span class="atd-t">Spring '25</span>
+      <span class="atd-t">Standalone</span>
     </div>
 
-    <ul class="atd-list">
-      <li>
-        <span class="atd-dot atd-dot--amber"></span>
-        <span class="atd-name">Pottery</span>
-        <span class="atd-sub">attend 2 in a row to recover</span>
-        <span class="atd-pct atd-pct--amber">78%</span>
-      </li>
-      <li>
-        <span class="atd-dot atd-dot--sage"></span>
-        <span class="atd-name">Statistics</span>
-        <span class="atd-sub">3 classes to spare</span>
-        <span class="atd-pct atd-pct--sage">96%</span>
-      </li>
-      <li>
-        <span class="atd-dot atd-dot--rose"></span>
-        <span class="atd-name">French A2</span>
-        <span class="atd-sub">below the line</span>
-        <span class="atd-pct atd-pct--rose">71%</span>
-      </li>
-    </ul>
+    <a class="atd-banner">
+      <span class="atd-banner-ic">✓</span>
+      <span class="atd-banner-txt">
+        <b>Mark today's classes</b>
+        <span>2 classes left to mark today</span>
+      </span>
+      <span class="atd-banner-arrow">→</span>
+    </a>
 
-    <nav class="atd-tabs">
-      <span class="atd-tab atd-tab--on">Today</span>
-      <span class="atd-tab">Calendar</span>
-      <span class="atd-tab">Stats</span>
-    </nav>
+    <div class="atd-cards">
+      {
+        courses.map((c) => (
+          <div class="atd-card">
+            <span class="atd-bar" style={`background:${c.bar}`} />
+            <div class="atd-card-body">
+              <p class="atd-card-name">{c.name}</p>
+              <span class="atd-badge" style={`background:${badgeBg[c.tone]};color:${badgeFg[c.tone]}`}>
+                {c.badge}
+              </span>
+            </div>
+            <svg class="atd-ring" viewBox="0 0 64 64" aria-hidden="true">
+              <circle cx="32" cy="32" r="28" fill="none" stroke="#e0dcd2" stroke-width="6" />
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                stroke={ringColor[c.tone]}
+                stroke-width="6"
+                pathLength="100"
+                stroke-dasharray={`${c.pct} 100`}
+                stroke-linecap="round"
+                transform="rotate(-90 32 32)"
+              />
+              <text x="32" y="37" text-anchor="middle" class="atd-ring-t">{c.pct}%</text>
+            </svg>
+          </div>
+        ))
+      }
+    </div>
   </div>
 </StillFrame>
 
@@ -54,133 +74,127 @@ import StillFrame from './StillFrame.astro';
   .atd {
     background: #faf9f6;
     color: #1a1a18;
-    padding: 18px 16px 0;
+    padding: 16px 15px 18px;
     font-family: system-ui, -apple-system, sans-serif;
   }
-  .atd-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  .atd-kicker {
-    margin: 0;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #9b9890;
+  .atd-head {
+    margin-bottom: 12px;
   }
   .atd-title {
-    margin: 1px 0 0;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 21px;
-    font-weight: 400;
-    color: #1a1a18;
-  }
-  .atd-avatar {
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #e8f0e6;
-    color: #2d4a2e;
-    font-size: 10px;
-    font-weight: 700;
-  }
-
-  .atd-hero {
-    background: #fdfcf9;
-    border: 1px solid #f0ede6;
-    border-radius: 14px;
-    padding: 14px 15px;
-    box-shadow: 0 4px 10px -4px rgba(35, 25, 15, 0.08);
-  }
-  .atd-hero-name {
     margin: 0;
-    font-size: 12px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 22px;
+  }
+  .atd-sub {
+    margin: 1px 0 0;
+    font-size: 11.5px;
     color: #6b6960;
   }
-  .atd-hero-pct {
-    margin: 2px 0 0;
-    font-family: Georgia, serif;
-    font-size: 40px;
-    line-height: 1;
-    color: #4f7942;
+
+  .atd-tabs {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 13px;
   }
-  .atd-hero-note {
-    margin: 6px 0 10px;
-    font-size: 11.5px;
-    color: #3d3d38;
-  }
-  .atd-bar {
-    height: 6px;
+  .atd-t {
+    font-size: 11px;
+    color: #6b6960;
+    background: #f0ede6;
+    padding: 4px 11px;
     border-radius: 999px;
-    background: #e8f0e6;
-    overflow: hidden;
   }
-  .atd-bar span {
-    display: block;
-    height: 100%;
+  .atd-t--on {
     background: #4f7942;
+    color: #f3f7f2;
   }
 
-  .atd-list {
-    list-style: none;
-    margin: 14px 0 0;
-    padding: 0;
-  }
-  .atd-list li {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+  .atd-banner {
+    display: flex;
     align-items: center;
-    column-gap: 9px;
-    padding: 10px 2px;
-    border-top: 1px solid #f0ede6;
+    gap: 11px;
+    background: #4f7942;
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px 13px;
+    box-shadow: 0 6px 14px -6px rgba(45, 74, 46, 0.55);
   }
-  .atd-dot {
-    width: 8px;
-    height: 8px;
+  .atd-banner-ic {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 13px;
   }
-  .atd-dot--sage { background: #4f7942; }
-  .atd-dot--amber { background: #c98f3e; }
-  .atd-dot--rose { background: #b85c72; }
-  .atd-name {
+  .atd-banner-txt {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .atd-banner-txt b {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .atd-banner-txt span {
+    font-size: 11px;
+    color: #f3f7f2;
+    opacity: 0.9;
+  }
+  .atd-banner-arrow {
+    font-family: Georgia, serif;
+    font-size: 20px;
+  }
+
+  .atd-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .atd-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fdfcf9;
+    border: 1px solid #f0ede6;
+    border-radius: 12px;
+    padding: 11px 12px;
+    box-shadow: 0 3px 8px -5px rgba(35, 25, 15, 0.1);
+  }
+  .atd-bar {
+    width: 5px;
+    height: 42px;
+    border-radius: 999px;
+    flex: none;
+  }
+  .atd-card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .atd-card-name {
+    margin: 0 0 5px;
     font-size: 13.5px;
     font-weight: 600;
     color: #1a1a18;
   }
-  .atd-sub {
-    grid-column: 2;
-    font-size: 10.5px;
-    color: #9b9890;
-    margin-top: 1px;
+  .atd-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2.5px 7px;
+    border-radius: 999px;
   }
-  .atd-pct {
-    grid-row: 1 / span 2;
-    grid-column: 3;
-    font-family: Georgia, serif;
-    font-size: 17px;
+  .atd-ring {
+    width: 46px;
+    height: 46px;
+    flex: none;
   }
-  .atd-pct--sage { color: #4f7942; }
-  .atd-pct--amber { color: #b8782a; }
-  .atd-pct--rose { color: #a14a5e; }
-
-  .atd-tabs {
-    display: flex;
-    justify-content: space-around;
-    margin: 12px -16px 0;
-    padding: 11px 0 15px;
-    border-top: 1px solid #f0ede6;
-    background: #fdfcf9;
-  }
-  .atd-tab {
-    font-size: 11px;
-    color: #9b9890;
-  }
-  .atd-tab--on {
-    color: #4f7942;
+  .atd-ring-t {
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
     font-weight: 700;
+    fill: #1a1a18;
   }
 </style>

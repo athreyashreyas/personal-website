@@ -1,50 +1,80 @@
 ---
-// Hisaab — the one "safe to spend" number, after upcoming bills. Palette from
-// the app: parchment, deep ledger teal, moss income / rose overspend. Money is
-// set in the serif face so it reads like a hand-kept ledger.
+// Hisaab — the real Home screen, reconstructed from src/pages/HomePage.tsx +
+// SafeToSpendCard.tsx (teal-gradient hero, month-pace bar, 4-up stat grid, the
+// conic "Where it went" donut, recent rows). Dialled down for the blog.
 import StillFrame from './StillFrame.astro';
+
+// A CSS conic-gradient donut, exactly like the app's WhereItWentStrip.
+const cats = [
+  { name: 'Groceries', color: '#1e7f75', amt: '₹9,840', share: 0.34 },
+  { name: 'Rent', color: '#c98f3e', amt: '₹28,000', share: 0.3 },
+  { name: 'Eating out', color: '#b85c72', amt: '', share: 0.18 },
+  { name: 'Transport', color: '#4f7942', amt: '', share: 0.18 },
+];
+let acc = 0;
+const stops = cats
+  .map((c) => {
+    const from = acc * 100;
+    acc += c.share;
+    return `${c.color} ${from}% ${acc * 100}%`;
+  })
+  .join(', ');
 ---
 
-<StillFrame variant="phone" label="Hisaab — one honest number, after the bills still to come">
+<StillFrame variant="phone" label="Home: the one number, after the bills still to come">
   <div class="hsb">
-    <header class="hsb-top">
-      <div>
-        <p class="hsb-kicker">July</p>
-        <h3 class="hsb-title">Hisaab</h3>
-      </div>
-      <span class="hsb-chip">₹ Ledger</span>
+    <header class="hsb-head">
+      <p class="hsb-kicker">Friday, 28 July</p>
+      <h3 class="hsb-title">Hisaab</h3>
+      <p class="hsb-sub">July at a glance</p>
     </header>
 
     <div class="hsb-hero">
-      <p class="hsb-hero-kicker">Safe to spend</p>
-      <p class="hsb-hero-amt">₹24,380</p>
-      <p class="hsb-hero-note">after ₹18,600 of bills still due this month</p>
-      <div class="hsb-bar">
-        <span class="hsb-bar-spent" style="width:58%"></span>
-        <span class="hsb-bar-due" style="width:22%"></span>
+      <div class="hsb-glow"></div>
+      <p class="hsb-hero-k">Safe to spend</p>
+      <p class="hsb-hero-amt">₹24,380<span>.50</span></p>
+      <p class="hsb-hero-day">₹812 a day for the 4 days left</p>
+
+      <div class="hsb-pace-top">
+        <span>Month</span><span>Day 27 of 31</span>
+      </div>
+      <div class="hsb-pace"><span style="width:87%"></span></div>
+
+      <div class="hsb-stats">
+        <div><p class="hsb-s-l">Income</p><p class="hsb-s-v">₹82,000</p></div>
+        <div class="dl"><p class="hsb-s-l">Spent</p><p class="hsb-s-v">₹57,620</p></div>
+        <div class="dt"><p class="hsb-s-l">Bills to come</p><p class="hsb-s-v">₹18,600</p></div>
+        <div class="dt dl"><p class="hsb-s-l">Goals set aside</p><p class="hsb-s-v">₹6,000</p></div>
       </div>
     </div>
 
-    <ul class="hsb-list">
-      <li>
-        <span class="hsb-ic hsb-ic--teal">G</span>
-        <span class="hsb-name">Groceries</span>
-        <span class="hsb-meta">Today · Cash</span>
-        <span class="hsb-amt">−₹840</span>
-      </li>
-      <li>
-        <span class="hsb-ic hsb-ic--moss">S</span>
-        <span class="hsb-name">Salary</span>
-        <span class="hsb-meta">1 Jul · Income</span>
-        <span class="hsb-amt hsb-amt--in">+₹82,000</span>
-      </li>
-      <li>
-        <span class="hsb-ic hsb-ic--rose">E</span>
-        <span class="hsb-name">Electricity</span>
-        <span class="hsb-meta">Due 28 Jul</span>
-        <span class="hsb-amt">−₹1,240</span>
-      </li>
-    </ul>
+    <div class="hsb-went">
+      <div class="hsb-donut" style={`background:conic-gradient(${stops})`}>
+        <div class="hsb-donut-hole">
+          <span class="hsb-donut-k">Spent</span>
+          <span class="hsb-donut-v">₹57.6k</span>
+        </div>
+      </div>
+      <div class="hsb-went-list">
+        <div class="hsb-went-top">
+          <span>Where it went</span><span class="hsb-link">Insights →</span>
+        </div>
+        {
+          cats.slice(0, 2).map((c) => (
+            <div class="hsb-went-row">
+              <span class="hsb-sw" style={`background:${c.color}`} />
+              <span class="hsb-went-name">{c.name}</span>
+              <span class="hsb-went-amt">{c.amt}</span>
+            </div>
+          ))
+        }
+        <div class="hsb-went-row hsb-went-more">
+          <span class="hsb-sw" style="background:#e0dcd2"></span>
+          <span class="hsb-went-name">Other categories</span>
+          <span class="hsb-went-amt">+2 more</span>
+        </div>
+      </div>
+    </div>
 
     <nav class="hsb-tabs">
       <span class="hsb-tab hsb-tab--on">Home</span>
@@ -60,124 +90,213 @@ import StillFrame from './StillFrame.astro';
   .hsb {
     background: #faf9f6;
     color: #1a1a18;
-    padding: 18px 16px 0;
+    padding: 16px 15px 0;
     font-family: system-ui, -apple-system, sans-serif;
   }
-  .hsb-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 13px;
+  .hsb-head {
+    margin-bottom: 12px;
   }
   .hsb-kicker {
     margin: 0;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
     color: #9b9890;
   }
   .hsb-title {
     margin: 1px 0 0;
     font-family: Georgia, 'Times New Roman', serif;
     font-weight: 400;
-    font-size: 21px;
+    font-size: 22px;
   }
-  .hsb-chip {
-    font-size: 10px;
-    color: #114a44;
-    background: #d6e9e5;
-    padding: 3px 9px;
-    border-radius: 999px;
+  .hsb-sub {
+    margin: 0;
+    font-size: 11.5px;
+    color: #6b6960;
   }
 
+  /* Teal-gradient hero */
   .hsb-hero {
-    background: #114a44;
-    border-radius: 15px;
-    padding: 15px 16px 16px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    padding: 16px 16px 15px;
+    background: linear-gradient(135deg, #16615a, #1e7f75);
     color: #f3fbf9;
-    box-shadow: 0 10px 20px -8px rgba(17, 74, 68, 0.5);
+    box-shadow: 0 10px 22px -10px rgba(17, 74, 68, 0.55);
   }
-  .hsb-hero-kicker {
+  .hsb-glow {
+    position: absolute;
+    right: -32px;
+    top: -32px;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .hsb-hero-k {
     margin: 0;
     font-size: 11px;
-    letter-spacing: 0.05em;
-    color: #86c0b8;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.82;
   }
   .hsb-hero-amt {
-    margin: 3px 0 0;
+    margin: 4px 0 0;
     font-family: Georgia, serif;
-    font-size: 38px;
+    font-size: 42px;
     line-height: 1;
   }
-  .hsb-hero-note {
-    margin: 7px 0 11px;
-    font-size: 11px;
-    color: #b8ddd6;
+  .hsb-hero-amt span {
+    font-size: 20px;
+    opacity: 0.7;
   }
-  .hsb-bar {
+  .hsb-hero-day {
+    margin: 9px 0 0;
+    font-size: 12.5px;
+    opacity: 0.9;
+  }
+  .hsb-pace-top {
     display: flex;
-    gap: 3px;
-    height: 6px;
+    justify-content: space-between;
+    margin: 15px 0 5px;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.8;
   }
-  .hsb-bar span {
+  .hsb-pace {
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+  }
+  .hsb-pace span {
     display: block;
     height: 100%;
+    background: #f3fbf9;
     border-radius: 999px;
   }
-  .hsb-bar-spent { background: #4ba096; }
-  .hsb-bar-due { background: #c98f3e; }
-
-  .hsb-list {
-    list-style: none;
-    margin: 14px 0 0;
-    padding: 0;
-  }
-  .hsb-list li {
+  .hsb-stats {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    column-gap: 10px;
-    padding: 9px 2px;
-    border-top: 1px solid #f0ede6;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    margin-top: 15px;
   }
-  .hsb-ic {
-    grid-row: 1 / span 2;
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
+  .hsb-stats .dl {
+    border-left: 1px solid rgba(255, 255, 255, 0.16);
+    padding-left: 16px;
   }
-  .hsb-ic--teal { background: #1e7f75; }
-  .hsb-ic--moss { background: #4f7942; }
-  .hsb-ic--rose { background: #b85c72; }
-  .hsb-name {
-    font-size: 13.5px;
-    font-weight: 600;
+  .hsb-stats .dt {
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    padding-top: 12px;
   }
-  .hsb-meta {
-    grid-column: 2;
-    font-size: 10.5px;
-    color: #9b9890;
-    margin-top: 1px;
+  .hsb-s-l {
+    margin: 0;
+    font-size: 11px;
+    opacity: 0.75;
   }
-  .hsb-amt {
-    grid-row: 1 / span 2;
-    grid-column: 3;
+  .hsb-s-v {
+    margin: 2px 0 0;
     font-family: Georgia, serif;
-    font-size: 15px;
-    color: #3d3d38;
+    font-size: 17px;
   }
-  .hsb-amt--in { color: #4f7942; }
 
+  /* Where it went */
+  .hsb-went {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 15px 2px 0;
+  }
+  .hsb-donut {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex: none;
+    border-radius: 50%;
+  }
+  .hsb-donut-hole {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: #faf9f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .hsb-donut-k {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b6960;
+  }
+  .hsb-donut-v {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    color: #1a1a18;
+  }
+  .hsb-went-list {
+    flex: 1;
+    min-width: 0;
+  }
+  .hsb-went-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #6b6960;
+  }
+  .hsb-link {
+    color: #16615a;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .hsb-went-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #3d3d38;
+    margin-top: 5px;
+  }
+  .hsb-went-more {
+    color: #6b6960;
+  }
+  .hsb-sw {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+  }
+  .hsb-went-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hsb-went-amt {
+    margin-left: auto;
+    font-weight: 600;
+    color: #1a1a18;
+    flex: none;
+  }
+  .hsb-went-more .hsb-went-amt {
+    font-weight: 400;
+    color: #6b6960;
+  }
+
+  /* Bottom tabs */
   .hsb-tabs {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    margin: 12px -16px 0;
+    margin: 14px -15px 0;
     padding: 10px 0 15px;
     border-top: 1px solid #f0ede6;
     background: #fdfcf9;
@@ -187,7 +306,7 @@ import StillFrame from './StillFrame.astro';
     color: #9b9890;
   }
   .hsb-tab--on {
-    color: #1e7f75;
+    color: #16615a;
     font-weight: 700;
   }
   .hsb-add {

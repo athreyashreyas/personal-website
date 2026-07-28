@@ -1,0 +1,136 @@
+---
+// Nila — the daily check-in, reconstructed from src/components/ui/CheckinFields.tsx:
+// mood, energy, flow, symptoms and a note. Everything you tap here is encrypted
+// on-device before it syncs, so the server only ever holds ciphertext.
+import StillFrame from './StillFrame.astro';
+
+const moods = ['😊', '🙂', '😐', '😕', '😣'];
+const flows = ['None', 'Light', 'Medium', 'Heavy'];
+const symptoms = [
+  { s: 'Cramps', on: true },
+  { s: 'Headache', on: false },
+  { s: 'Bloating', on: true },
+  { s: 'Tender', on: false },
+  { s: 'Low mood', on: false },
+];
+---
+
+<StillFrame variant="phone" label="Check-in: log the day; it is encrypted on the device before it ever syncs">
+  <div class="nch">
+    <header class="nch-head">
+      <h3 class="nch-title">Today</h3>
+      <span class="nch-date">Fri, 28 Jul</span>
+    </header>
+
+    <p class="nch-label">Mood</p>
+    <div class="nch-moods">
+      {moods.map((m, i) => <span class={`nch-mood ${i === 1 ? 'is-on' : ''}`}>{m}</span>)}
+    </div>
+
+    <p class="nch-label">Flow</p>
+    <div class="nch-chips">
+      {flows.map((f, i) => <span class={`nch-chip ${i === 0 ? 'is-on' : ''}`}>{f}</span>)}
+    </div>
+
+    <p class="nch-label">Symptoms</p>
+    <div class="nch-chips nch-wrap">
+      {symptoms.map((x) => <span class={`nch-chip ${x.on ? 'is-on' : ''}`}>{x.s}</span>)}
+    </div>
+
+    <div class="nch-note">A quiet day. Slept well.</div>
+
+    <span class="nch-save">Save check-in</span>
+  </div>
+</StillFrame>
+
+<style>
+  .nch {
+    background: #faf9f6;
+    color: #1a1a18;
+    padding: 18px 16px 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .nch-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .nch-title {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 22px;
+  }
+  .nch-date {
+    font-size: 11px;
+    color: #6b6960;
+  }
+  .nch-label {
+    margin: 12px 0 7px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #8e3b5c;
+  }
+  .nch-moods {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .nch-mood {
+    flex: 1;
+    text-align: center;
+    font-size: 20px;
+    padding: 6px 0;
+    border-radius: 10px;
+    background: #f0ede6;
+    filter: grayscale(0.4);
+    opacity: 0.7;
+  }
+  .nch-mood.is-on {
+    background: rgba(142, 59, 92, 0.14);
+    outline: 1.5px solid #8e3b5c;
+    filter: none;
+    opacity: 1;
+  }
+  .nch-chips {
+    display: flex;
+    gap: 7px;
+  }
+  .nch-wrap {
+    flex-wrap: wrap;
+  }
+  .nch-chip {
+    font-size: 11.5px;
+    color: #3d3d38;
+    background: #f0ede6;
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+  .nch-chip.is-on {
+    background: #8e3b5c;
+    color: #fdfcf9;
+  }
+  .nch-note {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: #6b6960;
+    background: #fdfcf9;
+    border: 1px solid #e0dcd2;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .nch-save {
+    display: block;
+    margin-top: 14px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fdfcf9;
+    background: #8e3b5c;
+    border-radius: 12px;
+    padding: 12px 0;
+  }
+</style>

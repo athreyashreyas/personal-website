@@ -1,0 +1,143 @@
+---
+// Harmony — Today, reconstructed from HomeScreen.tsx + HabitCard.tsx: a round
+// check per habit, the habit name with its area colour beneath, a time-of-day
+// label, and a separate "ease off" section for Tugs. Dialled down for the blog.
+import StillFrame from './StillFrame.astro';
+
+const habits = [
+  { name: 'Morning run', area: 'Movement', color: '#b5532f', when: 'Morning', done: true },
+  { name: 'Read 20 minutes', area: 'Mind', color: '#c98f3e', when: 'Evening', done: false },
+  { name: 'Sketch something', area: 'Craft', color: '#47602a', when: 'Anytime', done: false },
+];
+---
+
+<StillFrame variant="phone" label="Today: tend a habit and its petal grows; note a Tug and it eases back">
+  <div class="hmt">
+    <div class="hmt-head">
+      <h3 class="hmt-title">Today</h3>
+      <span class="hmt-count">1 of 3 tended</span>
+    </div>
+
+    <div class="hmt-list">
+      {
+        habits.map((h) => (
+          <div class="hmt-row">
+            <span class={`hmt-box ${h.done ? 'is-done' : ''}`} style={h.done ? `background:${h.color};border-color:${h.color}` : ''}>
+              {h.done && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </span>
+            <span class="hmt-body">
+              <span class={`hmt-name ${h.done ? 'is-done' : ''}`}>{h.name}</span>
+              <span class="hmt-area" style={`color:${h.color}`}>{h.area}</span>
+            </span>
+            <span class="hmt-when">{h.when}</span>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="hmt-section">Ease off</p>
+    <div class="hmt-tug">
+      <span class="hmt-tug-dot"></span>
+      <span class="hmt-body">
+        <span class="hmt-name">Late-night scrolling</span>
+        <span class="hmt-area" style="color:#94502f">note it on the days it happens</span>
+      </span>
+    </div>
+  </div>
+</StillFrame>
+
+<style>
+  .hmt {
+    background: #fffaf1;
+    color: #23190f;
+    padding: 18px 15px 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .hmt-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .hmt-title {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 22px;
+  }
+  .hmt-count {
+    font-size: 11px;
+    color: #ab977a;
+  }
+  .hmt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .hmt-row,
+  .hmt-tug {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fffdf8;
+    border: 1px solid #f3e4cf;
+    border-radius: 12px;
+    padding: 11px 13px;
+    box-shadow: 0 3px 8px -6px rgba(35, 25, 15, 0.15);
+  }
+  .hmt-box {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid #dcccb4;
+  }
+  .hmt-box svg {
+    width: 14px;
+    height: 14px;
+  }
+  .hmt-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .hmt-name {
+    font-size: 13.5px;
+    color: #23190f;
+  }
+  .hmt-name.is-done {
+    color: #ab977a;
+    text-decoration: line-through;
+  }
+  .hmt-area {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .hmt-when {
+    font-size: 11px;
+    color: #ab977a;
+    flex: none;
+  }
+  .hmt-section {
+    margin: 16px 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ab977a;
+  }
+  .hmt-tug-dot {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px dashed #c9714a;
+  }
+</style>

@@ -1,0 +1,142 @@
+---
+// Attend — Quick Mark, reconstructed from src/pages/QuickMarkPage.tsx: one class
+// at a time, a big serif name, and two full-width Present / Absent buttons, with
+// an X-of-Y counter as you swipe through the day. Dialled down for the blog.
+import StillFrame from './StillFrame.astro';
+---
+
+<StillFrame variant="phone" label="Quick Mark: one tap per class, straight after it ends">
+  <div class="aqm">
+    <div class="aqm-top">
+      <span class="aqm-back">‹</span>
+      <span class="aqm-count">1 of 3</span>
+      <span class="aqm-spacer"></span>
+    </div>
+
+    <div class="aqm-stage">
+      <div class="aqm-card">
+        <p class="aqm-kicker">9:00 AM · Room 204</p>
+        <h2 class="aqm-name">Data Structures</h2>
+
+        <div class="aqm-actions">
+          <span class="aqm-btn aqm-btn--present">Present</span>
+          <span class="aqm-btn aqm-btn--absent">Absent</span>
+        </div>
+        <span class="aqm-cancel">Class cancelled today</span>
+      </div>
+    </div>
+
+    <div class="aqm-dots">
+      <span class="aqm-dot aqm-dot--on"></span>
+      <span class="aqm-dot"></span>
+      <span class="aqm-dot"></span>
+    </div>
+  </div>
+</StillFrame>
+
+<style>
+  .aqm {
+    background: #faf9f6;
+    color: #1a1a18;
+    padding: 14px 15px 18px;
+    font-family: system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 430px;
+  }
+  .aqm-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .aqm-back {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: #6b6960;
+    font-size: 22px;
+    line-height: 1;
+  }
+  .aqm-count {
+    font-size: 12.5px;
+    color: #6b6960;
+  }
+  .aqm-spacer {
+    width: 30px;
+  }
+
+  .aqm-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .aqm-card {
+    width: 100%;
+    text-align: center;
+    padding: 8px 6px;
+  }
+  .aqm-kicker {
+    margin: 0;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9b9890;
+  }
+  .aqm-name {
+    margin: 10px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1.1;
+    color: #1a1a18;
+  }
+  .aqm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 26px;
+  }
+  .aqm-btn {
+    padding: 14px 0;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .aqm-btn--present {
+    background: #4f7942;
+    box-shadow: 0 6px 14px -5px rgba(79, 121, 66, 0.6);
+  }
+  .aqm-btn--absent {
+    background: #b85c72;
+    box-shadow: 0 6px 14px -5px rgba(184, 92, 114, 0.55);
+  }
+  .aqm-cancel {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: #6b6960;
+  }
+
+  .aqm-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .aqm-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #e0dcd2;
+  }
+  .aqm-dot--on {
+    background: #4f7942;
+    width: 18px;
+    border-radius: 999px;
+  }
+</style>
