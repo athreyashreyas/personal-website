@@ -1,66 +1,40 @@
 ---
-// Light/dark toggle. The no-flash init script lives in BaseLayout <head>;
-// this only handles the click and keeps the button label in sync.
+// Theme toggle: a two-tone split circle. One half is the theme's foreground
+// (dark in light mode, light in dark mode — it "turns dark/white"), the other
+// half is the brand green. Click handling lives in BaseLayout's inline script.
 ---
 
 <button
   id="theme-toggle"
   type="button"
   class="theme-toggle"
-  aria-label="Toggle color theme"
+  aria-label="Toggle light or dark theme"
   title="Toggle light / dark"
->
-  <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none"
-    stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-    <circle cx="12" cy="12" r="4.2" />
-    <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" />
-  </svg>
-  <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none"
-    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M19.5 16A8 8 0 0 1 9 5.5a6.5 6.5 0 1 0 10.5 10.5z" />
-  </svg>
-</button>
+></button>
 
 <style>
   .theme-toggle {
     flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: 2.1rem;
     height: 2.1rem;
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: var(--accent-link);
-    color: var(--bg);
+    /* one half flips dark/white with the theme; the other half stays green */
+    background: linear-gradient(
+      135deg,
+      var(--text-primary) 0 50%,
+      var(--accent-link) 50% 100%
+    );
     cursor: pointer;
     box-shadow: var(--toggle-shadow);
     transition:
       box-shadow 0.2s ease,
-      transform 0.2s ease,
-      background-color 0.22s ease,
-      color 0.22s ease;
+      transform 0.2s ease;
   }
 
   .theme-toggle:hover {
-    transform: translateY(-1px);
+    transform: translateY(-1px) scale(1.04);
     box-shadow: var(--toggle-shadow-hover);
-  }
-
-  .icon {
-    width: 1.05rem;
-    height: 1.05rem;
-  }
-
-  /* Show the icon for the theme you'd switch TO. */
-  .icon-sun {
-    display: none;
-  }
-  :global(:root[data-theme='dark']) .icon-sun {
-    display: block;
-  }
-  :global(:root[data-theme='dark']) .icon-moon {
-    display: none;
   }
 </style>
