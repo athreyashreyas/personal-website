@@ -59,6 +59,23 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
             ? 'dark'
             : 'light';
         }
+        // View-transition swaps copy the incoming (server-rendered) <html>'s
+        // attributes over the current ones, wiping the client-set data-theme.
+        // Re-apply it right after each swap, before paint, so there's no flash.
+        function applyTheme() {
+          try {
+            var stored = localStorage.getItem('theme');
+            var theme =
+              stored ||
+              (window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+          } catch (e) {
+            /* storage/matchMedia unavailable; CSS media query handles it */
+          }
+        }
+        document.addEventListener('astro:after-swap', applyTheme);
         function reflect() {
           var btn = document.getElementById('theme-toggle');
           if (btn) btn.setAttribute('aria-pressed', String(current() === 'dark'));
