@@ -140,16 +140,34 @@ main {
       fill 0.22s ease;
   }
 
-  /* Kill the page-to-page animation entirely: the default root cross-fade
-     reads as a flicker, and the group morph slides/grows the container
-     between pages of different heights. Navigation progress is shown by the
-     top loading bar instead. Every root pseudo is disabled, including the
-     group, so nothing animates on swap. */
+  /* Page swaps are instant — no root cross-fade or group morph (both read as
+     a flicker / a container that slides and grows between pages). The
+     "Netflix feel" comes from the incoming content easing in (see #main),
+     not from morphing the whole document. */
   ::view-transition-group(root),
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none !important;
     mix-blend-mode: normal;
+  }
+
+  /* Cinematic content entrance: the header/footer chrome stays put while the
+     main content rises, fades, and settles from a subtle zoom — a Netflix-
+     style transition. Astro re-inserts <main> on every navigation, so this
+     replays on each page. */
+  #main {
+    animation: content-enter 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes content-enter {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
