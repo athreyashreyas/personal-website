@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Figure from '../components/Figure.astro';
 import { getEntry, render } from 'astro:content';
 
 // Editable in the CMS under "Home intro" (src/content/home.mdx).
@@ -10,6 +11,25 @@ const { Content } = await render(home!);
 <BaseLayout title="Shreyas Athreya">
   <section class="intro">
     <Content />
+
+    {/* Closes the letter — picks up the last line about the motorcycle. Kept
+        out of home.mdx so that file stays plain prose for the CMS. */}
+    <Figure
+      src="/images/home/shreyas-beach-1000.webp"
+      srcset="/images/home/shreyas-beach-1000.webp 1000w, /images/home/shreyas-beach-1600.webp 1600w"
+      alt="Shreyas standing in the surf at dusk, waves breaking behind him under a pink sky."
+      width={1600}
+      height={1067}
+      protect
+    >
+      <Fragment slot="caption">
+        At <a
+          href="https://www.google.com/maps/search/Marina+Beach,+Chennai"
+          target="_blank"
+          rel="noopener">Marina Beach</a
+        > on a beautiful summer evening after a ride.
+      </Fragment>
+    </Figure>
   </section>
 </BaseLayout>
 

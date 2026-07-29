@@ -1,0 +1,108 @@
+---
+// A plain captioned image, sized to the prose measure. Deliberately NOT
+// astro:assets — these files are pre-optimised and live in /public/images,
+// which is the convention Keystatic writes into.
+interface Props {
+  src: string;
+  srcset?: string;
+  sizes?: string;
+  alt: string;
+  /** Plain-text caption. For a caption with a link, pass a `caption` slot. */
+  caption?: string;
+  width: number;
+  height: number;
+  /**
+   * Discourage casual saving: blocks drag-to-desktop, right-click, and the
+   * iOS long-press sheet. A deterrent only — the file is still at a public
+   * URL and reachable from devtools or the network tab.
+   */
+  protect?: boolean;
+}
+
+const {
+  src,
+  srcset,
+  sizes = '(max-width: 640px) 100vw, min(65ch, 100vw)',
+  alt,
+  caption,
+  width,
+  height,
+  protect = false,
+} = Astro.props;
+
+const hasCaptionSlot = Astro.slots.has('caption');
+---
+
+<figure class="figure" class:list={[{ 'is-protected': protect }]}>
+  <img
+    src={src}
+    srcset={srcset}
+    sizes={srcset ? sizes : undefined}
+    alt={alt}
+    width={width}
+    height={height}
+    loading="lazy"
+    decoding="async"
+    draggable={protect ? 'false' : undefined}
+  />
+  {
+    (hasCaptionSlot || caption) && (
+      <figcaption>{hasCaptionSlot ? <slot name="caption" /> : caption}</figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .figure {
+    /* Aligns to the prose column above it; the parent's own max-width wins
+       when it's narrower, so the left edges always agree. */
+    width: 100%;
+    max-width: var(--measure);
+    margin: 3rem 0 0;
+  }
+
+  .figure img {
+    width: 100%;
+    /* Reserve the box before the bytes arrive — no layout shift on load. */
+    aspect-ratio: 3 / 2;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* Deterrents against casual saving. Scoped to this image only — the rest of
+     the page keeps normal selection and context-menu behaviour. */
+  .figure.is-protected img {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    /* Suppresses the iOS long-press "Save Image" sheet. */
+    -webkit-touch-callout: none;
+  }
+
+  .figure figcaption {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin-top: 0.75rem;
+    /* Centred on the image, which the figcaption matches in width. Balanced so
+       a wrapped caption splits evenly instead of orphaning a word on phones. */
+    text-align: center;
+    text-wrap: balance;
+  }
+</style>
+
+{/* Right-click guard for protected figures. Delegated at the document and
+    bound once, so it survives view-transition navigations (same pattern as
+    the BaseLayout scripts). Inert on unprotected figures. */}
+<script is:inline>
+  (function () {
+    if (window.__figureProtectBound) return;
+    window.__figureProtectBound = true;
+    document.addEventListener('contextmenu', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('.figure.is-protected')) e.preventDefault();
+    });
+  })();
+</script>
