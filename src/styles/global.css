@@ -13,16 +13,59 @@
 /* ------------------------------------------------------------------ *
  * Design tokens
  * ------------------------------------------------------------------ */
+
+/* Registering the theme colors as <color>-typed custom properties makes them
+   individually animatable. That is what lets the transition below live on
+   :root ALONE: every consumer (background, text, borders, SVG fill via
+   currentColor, --hl's color-mix) just reads the live interpolated value
+   each frame, so bg/text/border/icons all move on one clock. The old
+   approach — transitioning background-color/color/border-color/fill on `*` —
+   compounds through inheritance: color is inherited, so each nested element
+   re-eases from its parent's still-moving value, and the delay stacks with
+   DOM depth (text several levels deep lagged background by ~500ms). See
+   the transition rule near the reduced-motion media query below. */
+@property --bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #FAF8F3;
+}
+@property --text-primary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2B2420;
+}
+@property --text-secondary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6B6558;
+}
+@property --border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #E4DFD1;
+}
+@property --accent-heading {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #58A588;
+}
+@property --accent-link {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #79C6A8;
+}
+
 :root {
   /* Color — light mode (default) */
   --bg:             #FAF8F3;
   --text-primary:   #2B2420;
   --text-secondary: #6B6558;
   --border:         #E4DFD1;
-  /* The light greens chosen as the brand identity (shared with dark mode),
-     used for links, the theme toggle, and the logo. NB: below WCAG text
-     contrast on the paper bg — in-content links are underlined so they stay
-     distinguishable without relying on color alone. */
+  /* The light greens chosen as the brand identity — same value in both
+     themes, so declared once here rather than repeated (and risking drift)
+     in the dark-mode blocks below. NB: below WCAG text contrast on the paper
+     bg — in-content links are underlined so they stay distinguishable
+     without relying on color alone. */
   --accent-heading: #58A588;
   --accent-link:    #79C6A8;
 
@@ -33,13 +76,6 @@
   /* Highlighter band behind section titles. Inner vars resolve per theme
      at use-site, so this one declaration adapts to light/dark. */
   --hl: color-mix(in srgb, var(--accent-link) 42%, var(--bg));
-
-  /* Text selection: the brand green as the highlight, with the light-theme
-     ink as the text on top. Deliberately NOT re-declared per theme — in dark
-     mode we still want the dark ink (not the pale --text-primary) so the
-     glyphs read crisply against the green band. */
-  --selection-bg:   var(--accent-link);
-  --selection-text: #2B2420;
 
   /* Type */
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
@@ -63,8 +99,6 @@
     --text-primary:   #ECE7DC;
     --text-secondary: #ABA495;
     --border:         #443E35;
-    --accent-heading: #58A588;
-    --accent-link:    #79C6A8;
     /* Light, visible glow-shadow against the dark background. */
     --toggle-shadow:       0 0 9px rgba(242, 238, 228, 0.32);
     --toggle-shadow-hover: 0 0 15px rgba(242, 238, 228, 0.48);
@@ -78,8 +112,6 @@
   --text-primary:   #ECE7DC;
   --text-secondary: #ABA495;
   --border:         #443E35;
-  --accent-heading: #58A588;
-  --accent-link:    #79C6A8;
   --toggle-shadow:       0 0 9px rgba(242, 238, 228, 0.32);
   --toggle-shadow-hover: 0 0 15px rgba(242, 238, 228, 0.48);
   color-scheme: dark;
@@ -130,15 +162,24 @@ body {
 /* Text selection (cursor drag AND touch highlight) picks up the brand green
    instead of the OS blue. Split into two rules on purpose: grouping
    ::selection with ::-moz-selection would let an unknown selector invalidate
-   the whole block in some engines. */
+   the whole block in some engines.
+
+   Values are hardcoded, not var(--selection-bg)/var(--selection-text) — some
+   WebKit versions (notably mobile Safari) don't reliably resolve custom
+   properties inside ::selection's forked cascade and silently fall back to
+   the OS-default blue instead, which is why this worked on desktop Chrome
+   but not on an iPhone. Neither value is actually theme-dependent anyway
+   (--accent-link is identical in light/dark; the text color is deliberately
+   fixed regardless of theme — see the tokens above), so hardcoding costs
+   nothing and removes the indirection that WebKit trips on. */
 ::selection {
-  background: var(--selection-bg);
-  color: var(--selection-text);
+  background: #79c6a8;
+  color: #2b2420;
 }
 
 ::-moz-selection {
-  background: var(--selection-bg);
-  color: var(--selection-text);
+  background: #79c6a8;
+  color: #2b2420;
 }
 
 /* Sticky footer: main grows to fill so the footer always reaches the
@@ -147,19 +188,23 @@ main {
   flex: 1 0 auto;
 }
 
-/* Uniform, snappy theme transition: text, background, borders, icon fills, and
-   the highlight band (--hl) all ease together over the same duration, so the
-   whole site changes as one instead of parts flipping faster than others.
-   Guarded by reduced-motion; triggers on change, not first paint. */
+/* Uniform, snappy theme transition. Transitioning the tokens themselves
+   (registered as <color> above) rather than background-color/color/
+   border-color/fill on every element means there is exactly one animation
+   driving the whole page — text, backgrounds, borders, SVG icon fills
+   (fill="currentColor" tracks --text-*), and the highlight band (--hl's
+   color-mix references --bg/--accent-link) all read the same interpolated
+   value on the same frame, everywhere, on every device. Guarded by
+   reduced-motion; triggers on change, not first paint. */
 @media (prefers-reduced-motion: no-preference) {
-  *,
-  *::before,
-  *::after {
+  :root {
     transition:
-      background-color 0.22s ease,
-      color 0.22s ease,
-      border-color 0.22s ease,
-      fill 0.22s ease;
+      --bg 0.22s ease,
+      --text-primary 0.22s ease,
+      --text-secondary 0.22s ease,
+      --border 0.22s ease,
+      --accent-heading 0.22s ease,
+      --accent-link 0.22s ease;
   }
 
   /* Page swaps are instant — no root cross-fade or group morph (both read as

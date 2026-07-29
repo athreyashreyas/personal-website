@@ -105,8 +105,25 @@ function isCurrent(href: string) {
   }
 
   a:hover {
-    color: var(--accent-link);
+    /* Nav links signal hover with color, not underline — this suppresses
+       the global underline-on-hover rule (see global.css) unconditionally,
+       independent of the color gate below. */
     text-decoration: none;
+  }
+
+  /* Color-on-hover only for devices with a real pointer. Touch has no
+     "hover" — the tapped element gets a sticky :hover that only clears on
+     the next tap elsewhere — so without this gate, tapping a link greened
+     it immediately while the still-current page was ALSO green (aria-current
+     only flips once the new page has actually loaded; see BaseLayout's
+     astro:page-load handler). That produced two green tabs during the load
+     gap. Gating to (hover: hover) means the ONLY thing that ever greens a
+     nav link is aria-current — one link is current at a time, and it only
+     changes after navigation completes. */
+  @media (hover: hover) {
+    a:hover {
+      color: var(--accent-link);
+    }
   }
 
   a[aria-current='page'] {
@@ -198,9 +215,14 @@ function isCurrent(href: string) {
       font-size: 1.05rem;
       white-space: nowrap;
     }
-    .nav-dd-list a:hover {
-      background: color-mix(in srgb, var(--accent-link) 10%, transparent);
-      color: var(--accent-link);
+    /* Same (hover: hover) gate as the desktop links above — this list only
+       ever shows on phone (see .nav-dd, max-width: 640px), where a tap would
+       otherwise stick this hover tint on the destination item pre-navigation. */
+    @media (hover: hover) {
+      .nav-dd-list a:hover {
+        background: color-mix(in srgb, var(--accent-link) 10%, transparent);
+        color: var(--accent-link);
+      }
     }
     .nav-dd-list a[aria-current='page'] {
       color: var(--accent-link);

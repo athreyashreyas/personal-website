@@ -52,6 +52,16 @@ const hasCaptionSlot = Astro.slots.has('caption');
   }
 </figure>
 
+{/* Without JS the reveal script below never runs, so the image would stay at
+    opacity: 0 forever — force it visible in that case. */}
+<noscript>
+  <style>
+    .figure img {
+      opacity: 1;
+    }
+  </style>
+</noscript>
+
 <style>
   .figure {
     /* Aligns to the prose column above it; the parent's own max-width wins
@@ -68,6 +78,24 @@ const hasCaptionSlot = Astro.slots.has('caption');
     height: auto;
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    /* Fades in on decode instead of popping in — a big high-contrast photo
+       appearing instantly against the paper background reads as a flash
+       even on a fast connection. The reveal script below toggles .is-loaded
+       once the image has actually decoded (or immediately, if it was already
+       cached/complete by the time the script runs). Duration matches the
+       theme-switch transition (see global.css) so the two feel like one
+       motion language rather than two different speeds. */
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .figure img {
+      transition: opacity 0.22s ease;
+    }
+  }
+
+  .figure img.is-loaded {
+    opacity: 1;
   }
 
   /* Deterrents against casual saving. Scoped to this image only — the rest of
@@ -104,5 +132,27 @@ const hasCaptionSlot = Astro.slots.has('caption');
       var t = e.target;
       if (t && t.closest && t.closest('.figure.is-protected')) e.preventDefault();
     });
+  })();
+</script>
+
+{/* Fade-in reveal. Each Figure gets fresh <img> DOM on every navigation (the
+    component isn't transition:persist'd), so re-running this on every
+    astro:page-load is correct, not a re-bind risk — no "bound once" guard
+    needed here, unlike the delegated listener above. Runs once immediately
+    too, matching the dual-call pattern BaseLayout uses for nav-current,
+    in case astro:page-load already fired before this executes. */}
+<script is:inline>
+  (function () {
+    function reveal(img) {
+      img.classList.add('is-loaded');
+    }
+    function wireFigureReveal() {
+      document.querySelectorAll('.figure img:not(.is-loaded)').forEach(function (img) {
+        if (img.complete && img.naturalWidth > 0) reveal(img);
+        else img.addEventListener('load', function () { reveal(img); }, { once: true });
+      });
+    }
+    document.addEventListener('astro:page-load', wireFigureReveal);
+    wireFigureReveal();
   })();
 </script>
