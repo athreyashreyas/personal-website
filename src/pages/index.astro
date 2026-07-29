@@ -33,6 +33,43 @@ const { Content } = await render(home!);
   </section>
 </BaseLayout>
 
+{/* Keep the top nav-progress bar (see BaseLayout) loading until this hero
+    image has actually decoded, not just until the rest of the page has —
+    otherwise the page reads as "done" right before the image pops in, which
+    is exactly the flicker this is meant to avoid on slow connections. Sets
+    window.__navProgressGate, which BaseLayout's own page-load handler reads
+    instead of completing the bar unconditionally. Astro dedupes identical
+    inline scripts by content, so on a repeat client-side visit to this page
+    this body may not re-run — the immediate call below still covers a fresh
+    hard load, and the gate function itself re-queries the DOM live on every
+    call, so the (possibly stale) window reference from an earlier visit
+    still resolves against whichever page is current — including falling
+    back to a normal done() once the user has navigated to a page that has
+    no such image, so the reference left behind doesn't strand the bar. */}
+<script is:inline>
+  (function () {
+    function gate() {
+      var np = window.__navProgress;
+      if (!np) return;
+      var img = document.querySelector('.intro .figure img');
+      if (!img) {
+        np.done();
+        return;
+      }
+      if (img.complete && img.naturalWidth > 0) {
+        np.done();
+        return;
+      }
+      var bar = document.getElementById('nav-progress');
+      if (bar && !bar.classList.contains('is-loading')) np.start();
+      img.addEventListener('load', np.done, { once: true });
+      img.addEventListener('error', np.done, { once: true });
+    }
+    window.__navProgressGate = gate;
+    gate();
+  })();
+</script>
+
 <style>
   .intro {
     margin-top: 1rem;

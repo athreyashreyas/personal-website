@@ -171,7 +171,13 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 
     {/* Top navigation progress bar. Starts when a view-transition navigation
         begins, completes when the new page has loaded. Bound once; the bar
-        element is transition:persist'd so its state survives the swap. */}
+        element is transition:persist'd so its state survives the swap.
+
+        start/done are exposed on window so a page can hold the bar open
+        past the normal page-load moment — e.g. the home page keeps it
+        loading until its hero image has actually decoded, instead of
+        letting the bar (and the rest of the page) read as "done" while
+        that image is still going to pop in. See index.astro. */}
     <script is:inline>
       (function () {
         if (window.__navProgressBound) return;
@@ -201,8 +207,18 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
             el.classList.remove('is-done');
           }, 500);
         }
+        window.__navProgress = { start: start, done: done };
         document.addEventListener('astro:before-preparation', start);
-        document.addEventListener('astro:page-load', done);
+        // A page can override how "done" is decided (see index.astro) by
+        // setting window.__navProgressGate to a function that calls done()
+        // itself once ready. It's read fresh here, not captured — Astro
+        // dedupes identical inline scripts by content, so a page's own
+        // gate-setting script may only execute once per session even across
+        // repeat visits, but the gate function still re-queries the live DOM
+        // on each call, so a stale reference stays correct.
+        document.addEventListener('astro:page-load', function () {
+          (window.__navProgressGate || done)();
+        });
       })();
     </script>
 
