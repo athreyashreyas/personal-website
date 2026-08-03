@@ -1,4 +1,43 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
+import { block } from '@keystatic/core/content-components';
+
+// Project write-ups embed Astro "still" components (screenshot mock-ups) as
+// bare <XyzStill /> JSX tags. Keystatic's MDX editor needs every component
+// used in content to be registered here — none take props, they're purely
+// visual on the live site — otherwise it fails with "Missing component
+// definition for X" the moment it tries to load an entry that uses one.
+function still(label: string) {
+  return block({
+    label,
+    description: 'Renders on the live site — not editable here.',
+    schema: {},
+    ContentView: () => (
+      <div
+        style={{
+          padding: '0.75rem 1rem',
+          fontStyle: 'italic',
+          opacity: 0.6,
+          border: '1px dashed currentColor',
+          borderRadius: 6,
+        }}
+      >
+        {label}
+      </div>
+    ),
+  });
+}
+
+const stillComponents = {
+  AttendQuickMarkStill: still('Attend — quick-mark still'),
+  AttendStill: still('Attend still'),
+  HarmonyStill: still('Harmony still'),
+  HarmonyTodayStill: still('Harmony — today still'),
+  HisaabStill: still('Hisaab still'),
+  NilaCheckinStill: still('Nila — check-in still'),
+  NilaStill: still('Nila still'),
+  RituHomeStill: still('Ritu — home still'),
+  RituStill: still('Ritu still'),
+};
 
 // Local storage: editing happens in `npm run dev` at /keystatic and writes
 // files straight into this repo — no login, no database. To later edit from
@@ -131,6 +170,7 @@ export default config({
               publicPath: '/images/projects/',
             },
           },
+          components: stillComponents,
         }),
       },
     }),
