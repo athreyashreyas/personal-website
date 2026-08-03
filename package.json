@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "SITE_ONLY=1 astro dev",
     "dev:cms": "astro dev",
+    "edit": "node scripts/editor-server.mjs",
     "start": "SITE_ONLY=1 astro dev",
     "build": "astro build",
     "preview": "astro preview",
@@ -24,6 +25,7 @@
     "@keystatic/astro": "^5.2.0",
     "@keystatic/core": "^0.6.3",
     "astro": "^5.2.5",
+    "js-yaml": "^4.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
