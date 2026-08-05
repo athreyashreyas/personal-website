@@ -130,6 +130,9 @@ const { years = 70, defaultBirthday = '2000-01-01' } = Astro.props;
     color: var(--text-secondary);
   }
   .liw-trigger-date {
+    /* Same ink as the calendar glyph on the right — weight alone carries the
+       emphasis now, so the whole control reads as one muted unit. */
+    color: var(--text-secondary);
     font-weight: 500;
   }
 
@@ -143,8 +146,11 @@ const { years = 70, defaultBirthday = '2000-01-01' } = Astro.props;
     stroke-linecap: round;
     color: var(--text-secondary);
   }
+  /* Date and glyph move together, so they never diverge in any state. */
   .liw-trigger:hover .liw-cal,
-  .liw-trigger[aria-expanded='true'] .liw-cal {
+  .liw-trigger:hover .liw-trigger-date,
+  .liw-trigger[aria-expanded='true'] .liw-cal,
+  .liw-trigger[aria-expanded='true'] .liw-trigger-date {
     color: var(--accent-link);
   }
 
