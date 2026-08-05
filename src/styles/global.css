@@ -60,6 +60,11 @@
   inherits: true;
   initial-value: #79C6A8;
 }
+@property --warn {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #B4552F;
+}
 
 :root {
   /* Color — light mode (default) */
@@ -75,6 +80,12 @@
   --accent-heading: #58A588;
   --accent-link:    #79C6A8;
 
+  /* The counterpart to the greens: used only where something is being shown
+     as unsafe or leaking (see the "what the server sees" embed). Warm enough
+     to sit in this palette, distinct enough to read as a warning. Per-theme,
+     since the light value goes muddy on charcoal. */
+  --warn: #B4552F;
+
   /* Theme-toggle shadow — darker drop shadow in light mode. */
   --toggle-shadow:       0 3px 8px rgba(43, 36, 32, 0.5);
   --toggle-shadow-hover: 0 5px 14px rgba(43, 36, 32, 0.62);
@@ -87,6 +98,15 @@
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
+
+  /* The one sans "label" treatment: category badges, tags, footer, .meta.
+     Anything that is UI chrome rather than prose uses these three together. */
+  --label-size: 0.68rem;
+  --label-tracking: 0.06em;
+
+  /* Masked glyph for the native date picker button — see the rule further
+     down for why it is drawn by us rather than by the browser. */
+  --icon-calendar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M3 10h18'/%3E%3C/svg%3E");
 
   /* Rhythm */
   --measure: 65ch;      /* prose line length */
@@ -105,6 +125,7 @@
     --text-primary:   #ECE7DC;
     --text-secondary: #ABA495;
     --border:         #443E35;
+    --warn:           #E08A5F;
     /* Light, visible glow-shadow against the dark background. */
     --toggle-shadow:       0 0 9px rgba(242, 238, 228, 0.32);
     --toggle-shadow-hover: 0 0 15px rgba(242, 238, 228, 0.48);
@@ -118,6 +139,7 @@
   --text-primary:   #ECE7DC;
   --text-secondary: #ABA495;
   --border:         #443E35;
+  --warn:           #E08A5F;
   --toggle-shadow:       0 0 9px rgba(242, 238, 228, 0.32);
   --toggle-shadow-hover: 0 0 15px rgba(242, 238, 228, 0.48);
   color-scheme: dark;
@@ -210,7 +232,8 @@ main {
       --text-secondary 0.22s ease,
       --border 0.22s ease,
       --accent-heading 0.22s ease,
-      --accent-link 0.22s ease;
+      --accent-link 0.22s ease,
+      --warn 0.22s ease;
   }
 
   /* Page swaps are instant — no root cross-fade or group morph (both read as
@@ -520,10 +543,61 @@ li {
   z-index: 10;
 }
 
-/* Small muted meta text (dates, tags) — set in the sans face */
+/* ------------------------------------------------------------------ *
+ * Form controls
+ * ------------------------------------------------------------------ */
+
+/* Date inputs. `color-scheme` makes the browser's own dropdown calendar render
+   in the right theme; without it the panel stays light on a dark page.
+   Declared on the element (not inherited from :root) because the UA sheet
+   otherwise resolves the control against the default scheme. */
+input[type='date'] {
+  color-scheme: light dark;
+  font-family: var(--font-sans);
+  font-size: var(--label-size);
+  letter-spacing: var(--label-tracking);
+  color: var(--text-primary);
+  /* Transparent, not the UA's filled control: the native box is painted by the
+     browser per color-scheme and so lags the animated tokens on a theme flip,
+     which is exactly the staleness this section exists to remove. */
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.45em 0.6em;
+}
+input[type='date']:focus-visible {
+  outline: none;
+  border-color: var(--accent-link);
+}
+
+/* The picker icon is drawn by the browser, so it does NOT follow the animated
+   theme tokens — on a theme switch it kept the previous theme's light/dark
+   glyph and its baked-in background until something forced a repaint. Masking
+   our own glyph with `background: currentColor` hands it back to the cascade:
+   it is now literally the text color, so it crossfades on the same clock as
+   everything else and has no background of its own to go stale. */
+input[type='date']::-webkit-calendar-picker-indicator {
+  width: 0.95em;
+  height: 0.95em;
+  padding: 0;
+  margin-left: 0.4em;
+  cursor: pointer;
+  opacity: 0.75;
+  background: currentColor;
+  -webkit-mask: var(--icon-calendar) center / contain no-repeat;
+  mask: var(--icon-calendar) center / contain no-repeat;
+  transition: opacity 0.15s ease;
+}
+input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Small muted meta text (dates, empty states) — the shared label treatment */
 .meta {
   font-family: var(--font-sans);
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--label-size);
+  text-transform: uppercase;
+  letter-spacing: var(--label-tracking);
   line-height: 1.5;
 }

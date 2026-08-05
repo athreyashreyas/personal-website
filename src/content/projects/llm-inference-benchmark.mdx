@@ -35,6 +35,16 @@ it hands the prompt to the model. One of them had a near-constant \~1,000 ms of 
 That's the number that decides whether your product feels alive, and it's the one
 you can't read off anyone's pricing page.
 
+<LatencyWidget
+  aTtft={150}
+  bTtft={1150}
+  aTps={220}
+  bTps={200}
+  aLabel="Platform A"
+  bLabel="Platform B"
+  caption="Replays the two measured profiles: near-identical stream speed, about a second of difference before the first token. Not a live model call — drag either slider to feel the change."
+/>
+
 The second finding was that I'd have got the ranking wrong if I'd stopped at one
 concurrency level.
 

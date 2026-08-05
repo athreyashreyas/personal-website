@@ -1,0 +1,797 @@
+---
+// Scratch page: prototypes for the Lab, each one drawn from something already
+// on this site rather than being a generic canvas demo.
+//   weeks   — finitude; the reading/learning habit on the about page
+//   cipher  — Nila and Hisaab's "the server never sees it" premise, made literal
+//   latency — the LLM benchmark's point: TTFT is what you feel, not tokens/sec
+//   recall  — the forgetting curve behind learning languages
+// Not linked from /lab except by a temporary WIP link. Delete once one wins.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Lab previews" prose={false}>
+  <header class="page-head">
+    <h1><span class="hl-title">Lab previews</span></h1>
+    <p class="page-sub">
+      Four sketches, each pulled from something already on this site.
+    </p>
+  </header>
+
+  <div class="sketches">
+    <!-- 1 ------------------------------------------------------------- -->
+    <section class="sketch" id="sketch-weeks">
+      <div class="sketch-head">
+        <h2>Life in weeks</h2>
+        <p class="blurb">
+          One dot per week of a 70-year life, a column per year. Filled dots are
+          spent. Set your birthday for the exact count; hover any dot.
+        </p>
+      </div>
+      <div class="stage">
+        <div class="controls">
+          <label for="birth-date">Born</label>
+          <input id="birth-date" type="date" min="1930-01-01" value="2000-01-01" />
+          <output id="weeks-readout" class="readout">&nbsp;</output>
+        </div>
+        <canvas id="canvas-weeks" class="canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- 2 ------------------------------------------------------------- -->
+    <section class="sketch" id="sketch-cipher">
+      <div class="sketch-head">
+        <h2>What the server sees</h2>
+        <p class="blurb">
+          The premise behind Nila and Hisaab, made literal. Type a note the way
+          you would into a tracker, then take the encryption away and watch what
+          the other side stores. Real AES-GCM via WebCrypto, keyed in this tab.
+        </p>
+      </div>
+      <div class="stage">
+        <div class="controls">
+          <label for="cipher-input">Your note</label>
+          <input id="cipher-input" type="text" value="Period started today. Cramps mild." />
+          <label class="switch">
+            <input id="cipher-toggle" type="checkbox" checked />
+            <span>End-to-end encrypted</span>
+          </label>
+        </div>
+        <div class="panes">
+          <div class="pane">
+            <p class="pane-head">On your device</p>
+            <p id="cipher-plain" class="pane-body"></p>
+          </div>
+          <div class="pane">
+            <p class="pane-head">
+              On the server <span id="cipher-state" class="pane-tag"></span>
+            </p>
+            <p id="cipher-cipher" class="pane-body mono"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 ------------------------------------------------------------- -->
+    <section class="sketch" id="sketch-latency">
+      <div class="sketch-head">
+        <h2>The number you feel</h2>
+        <p class="blurb">
+          From the inference benchmark: everyone quotes tokens per second, but
+          what you feel is time to first token. B is nearly twice as fast on
+          throughput and still finishes feeling worse. Press run.
+        </p>
+      </div>
+      <div class="stage">
+        <div class="controls">
+          <button id="lat-run" type="button" class="btn">Run both</button>
+          <label for="lat-a-ttft">A · first token</label>
+          <input id="lat-a-ttft" type="range" min="50" max="2000" step="10" value="180" />
+          <output id="lat-a-out" class="readout"></output>
+          <label for="lat-b-ttft">B · first token</label>
+          <input id="lat-b-ttft" type="range" min="50" max="2000" step="10" value="1200" />
+          <output id="lat-b-out" class="readout"></output>
+        </div>
+        <div class="panes">
+          <div class="pane">
+            <p class="pane-head">A <span class="pane-tag">45 tok/s</span></p>
+            <p id="lat-a-text" class="pane-body stream"></p>
+            <p id="lat-a-stat" class="pane-stat"></p>
+          </div>
+          <div class="pane">
+            <p class="pane-head">B <span class="pane-tag">90 tok/s</span></p>
+            <p id="lat-b-text" class="pane-body stream"></p>
+            <p id="lat-b-stat" class="pane-stat"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 ------------------------------------------------------------- -->
+    <section class="sketch" id="sketch-recall">
+      <div class="sketch-head">
+        <h2>What you keep</h2>
+        <p class="blurb">
+          The forgetting curve behind learning a language. Memory decays
+          exponentially; each review flattens the next decay. Click the chart to
+          schedule a review and watch the curve hold.
+        </p>
+      </div>
+      <div class="stage">
+        <div class="controls">
+          <button id="recall-reset" type="button" class="btn">Reset</button>
+          <output id="recall-readout" class="readout"></output>
+        </div>
+        <canvas id="canvas-recall" class="canvas"></canvas>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.5rem;
+  }
+  .page-sub {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+
+  .sketches {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  .sketch-head h2 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+  .blurb {
+    margin: 0.35rem 0 0;
+    max-width: 62ch;
+    color: var(--text-secondary);
+  }
+
+  .stage {
+    margin-top: 1rem;
+  }
+
+  .canvas {
+    display: block;
+    width: 100%;
+    height: 340px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    touch-action: none;
+  }
+  #canvas-recall {
+    height: 300px;
+    cursor: crosshair;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .btn {
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.35em 0.9em;
+    cursor: pointer;
+  }
+  .btn:hover {
+    border-color: var(--accent-link);
+    color: var(--accent-link);
+  }
+
+  .controls input[type='date'],
+  .controls input[type='text'] {
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    letter-spacing: var(--label-tracking);
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.45em 0.6em;
+  }
+  .controls input[type='date'] {
+    text-transform: none;
+    color-scheme: light dark;
+  }
+  .controls input[type='text'] {
+    flex: 1 1 22ch;
+    min-width: 18ch;
+    text-transform: none;
+  }
+  .controls input[type='range'] {
+    width: 110px;
+    accent-color: var(--accent-link);
+  }
+  .readout {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    cursor: pointer;
+  }
+  .switch input {
+    accent-color: var(--accent-heading);
+  }
+
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .pane {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem 1rem;
+    min-height: 8.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .pane-head {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pane-tag {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1em 0.45em;
+  }
+  .pane-tag.warn {
+    color: #d08c6a;
+    border-color: #d08c6a;
+  }
+  .pane-tag.safe {
+    color: var(--accent-heading);
+    border-color: var(--accent-heading);
+  }
+  .pane-body {
+    margin: 0;
+    flex: 1;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .pane-body.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .pane-body.leak {
+    color: #d08c6a;
+    font-family: inherit;
+    font-size: inherit;
+  }
+  .pane-body.stream {
+    min-height: 5.5rem;
+  }
+  .pane-stat {
+    margin: 0.75rem 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .caret::after {
+    content: '▍';
+    color: var(--accent-link);
+  }
+
+  @media (max-width: 720px) {
+    .panes {
+      grid-template-columns: 1fr;
+    }
+    .canvas {
+      height: 260px;
+    }
+  }
+</style>
+
+<script>
+  const cleanups: Array<() => void> = [];
+  const SANS = "'Plus Jakarta Sans', system-ui, sans-serif";
+
+  function palette() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (n: string) => cs.getPropertyValue(n).trim();
+    return {
+      bg: v('--bg'),
+      text: v('--text-primary'),
+      dim: v('--text-secondary'),
+      border: v('--border'),
+      accent: v('--accent-link'),
+      heading: v('--accent-heading'),
+    };
+  }
+
+  /** Re-express a theme color at a given alpha. The theme tokens are registered
+      as `<color>`-typed custom properties, so getComputedStyle returns
+      `rgb(r, g, b)` rather than the authored hex — parse both. Canvas silently
+      ignores an unparseable value, so getting this wrong fails invisibly. */
+  function withAlpha(color: string, a: number) {
+    const fn = color.match(/rgba?\(([^)]+)\)/i);
+    if (fn) {
+      const [r, g, b] = fn[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+    const h = color.replace('#', '').trim();
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const n = parseInt(full, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
+
+  /** Sizes a canvas to its CSS box and DPR. `onResize` intentionally does not
+      fire for the first sizing: callers hold the returned ctx in a const, and a
+      synchronous callback would touch that binding inside its temporal dead
+      zone. Callers draw their own first frame. */
+  function fitCanvas(canvas: HTMLCanvasElement, onResize?: () => void) {
+    const ctx = canvas.getContext('2d')!;
+    const size = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    size();
+    const ro = new ResizeObserver(() => {
+      size();
+      onResize?.();
+    });
+    ro.observe(canvas);
+    cleanups.push(() => ro.disconnect());
+    return ctx;
+  }
+
+  function onThemeChange(fn: () => void) {
+    const mo = new MutationObserver(fn);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener('change', fn);
+    cleanups.push(() => {
+      mo.disconnect();
+      mq.removeEventListener('change', fn);
+    });
+  }
+
+  function on<K extends keyof HTMLElementEventMap>(
+    el: EventTarget,
+    type: K,
+    fn: (e: HTMLElementEventMap[K]) => void,
+  ) {
+    el.addEventListener(type, fn as EventListener);
+    cleanups.push(() => el.removeEventListener(type, fn as EventListener));
+  }
+
+  /* ----------------------------------------------------- 1. life in weeks */
+  function initWeeks() {
+    const canvas = document.getElementById('canvas-weeks') as HTMLCanvasElement | null;
+    const input = document.getElementById('birth-date') as HTMLInputElement | null;
+    const readout = document.getElementById('weeks-readout');
+    if (!canvas || !input || !readout) return;
+
+    // Local midnight, so the count only ticks over when the date does — and
+    // a birthday in the future is not selectable.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    input.max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+      today.getDate(),
+    ).padStart(2, '0')}`;
+
+    // A column per year, a row per week in it. The 52-wide orientation squashes
+    // to ~3px rows in a landscape canvas and reads as stripes, not a grid.
+    const YEARS = 70;
+    const WEEKS = 52;
+    let colors = palette();
+    let hover = -1;
+
+    /** Exact whole weeks between the chosen birthday and today. Parsed as local
+        (not `new Date("YYYY-MM-DD")`, which is UTC and can land a day early). */
+    function birth() {
+      const [y, m, d] = (input!.value || '2000-01-01').split('-').map(Number);
+      return y && m && d ? new Date(y, m - 1, d) : null;
+    }
+    function spentWeeks() {
+      const b = birth();
+      if (!b) return 0;
+      const days = Math.floor((today.getTime() - b.getTime()) / 864e5);
+      return Math.max(0, Math.floor(days / 7));
+    }
+    function spentDays() {
+      const b = birth();
+      return b ? Math.max(0, Math.floor((today.getTime() - b.getTime()) / 864e5)) : 0;
+    }
+
+    const ctx = fitCanvas(canvas, () => draw());
+
+    function geom() {
+      const pad = 12;
+      const cw = (canvas!.clientWidth - pad * 2) / YEARS;
+      const ch = (canvas!.clientHeight - pad * 2) / WEEKS;
+      return { pad, cw, ch, r: Math.max(1.2, Math.min(cw, ch) * 0.36) };
+    }
+
+    function draw() {
+      const w = canvas!.clientWidth;
+      const h = canvas!.clientHeight;
+      const { pad, cw, ch, r } = geom();
+      const spent = spentWeeks();
+
+      ctx.fillStyle = colors.bg;
+      ctx.fillRect(0, 0, w, h);
+
+      for (let i = 0; i < YEARS * WEEKS; i++) {
+        const year = (i / WEEKS) | 0;
+        const week = i % WEEKS;
+        const cx = pad + year * cw + cw / 2;
+        const cy = pad + week * ch + ch / 2;
+        const isHover = i === hover;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, isHover ? r * 2.1 : r, 0, Math.PI * 2);
+        ctx.fillStyle = isHover ? colors.accent : i < spent ? colors.dim : colors.border;
+        ctx.fill();
+      }
+
+      // Decade ticks give the grid a readable scale.
+      ctx.fillStyle = withAlpha(colors.dim, 0.75);
+      ctx.font = `500 10px ${SANS}`;
+      ctx.textAlign = 'center';
+      for (let y = 10; y < YEARS; y += 10) {
+        ctx.fillText(String(y), pad + y * cw + cw / 2, h - 2);
+      }
+
+      readout!.textContent =
+        hover >= 0
+          ? `age ${(hover / WEEKS) | 0} · week ${(hover % WEEKS) + 1}`
+          : `${spent.toLocaleString()} weeks spent (${spentDays().toLocaleString()} days) · ` +
+            `${Math.max(0, YEARS * WEEKS - spent).toLocaleString()} left`;
+    }
+
+    on(canvas, 'pointermove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const { pad, cw, ch } = geom();
+      const year = Math.floor((e.clientX - rect.left - pad) / cw);
+      const week = Math.floor((e.clientY - rect.top - pad) / ch);
+      const next =
+        year >= 0 && year < YEARS && week >= 0 && week < WEEKS ? year * WEEKS + week : -1;
+      if (next !== hover) {
+        hover = next;
+        draw();
+      }
+    });
+    on(canvas, 'pointerleave', () => {
+      if (hover !== -1) {
+        hover = -1;
+        draw();
+      }
+    });
+    on(input, 'input', () => draw());
+    onThemeChange(() => {
+      colors = palette();
+      draw();
+    });
+
+    draw();
+  }
+
+  /* -------------------------------------------------- 2. what the server sees */
+  function initCipher() {
+    const input = document.getElementById('cipher-input') as HTMLInputElement | null;
+    const toggle = document.getElementById('cipher-toggle') as HTMLInputElement | null;
+    const plainEl = document.getElementById('cipher-plain');
+    const cipherEl = document.getElementById('cipher-cipher');
+    const stateEl = document.getElementById('cipher-state');
+    if (!input || !toggle || !plainEl || !cipherEl || !stateEl) return;
+
+    // One ephemeral key per tab: it never leaves this page, which is the point.
+    const keyPromise = crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
+      'encrypt',
+    ]);
+
+    const b64 = (buf: ArrayBuffer) => {
+      const bytes = new Uint8Array(buf);
+      let s = '';
+      for (const b of bytes) s += String.fromCharCode(b);
+      return btoa(s);
+    };
+
+    let seq = 0;
+    async function render() {
+      const text = input!.value;
+      plainEl!.textContent = text || '—';
+
+      if (!toggle!.checked) {
+        stateEl!.textContent = 'plaintext';
+        stateEl!.className = 'pane-tag warn';
+        cipherEl!.className = 'pane-body leak';
+        cipherEl!.textContent = text || '—';
+        return;
+      }
+
+      stateEl!.textContent = 'AES-GCM';
+      stateEl!.className = 'pane-tag safe';
+      cipherEl!.className = 'pane-body mono';
+
+      const mine = ++seq;
+      const key = await keyPromise;
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ct = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        new TextEncoder().encode(text),
+      );
+      // A later keystroke may have already rendered; don't overwrite it.
+      if (mine !== seq) return;
+      cipherEl!.textContent = text ? `${b64(iv.buffer)}:${b64(ct)}` : '—';
+    }
+
+    on(input, 'input', render);
+    on(toggle, 'change', render);
+    render();
+  }
+
+  /* ------------------------------------------------- 3. the number you feel */
+  function initLatency() {
+    const run = document.getElementById('lat-run') as HTMLButtonElement | null;
+    if (!run) return;
+
+    // Long enough that B's throughput advantage actually overtakes A's head
+    // start: B finishes sooner on the clock and still feels worse. Below about
+    // 92 words A wins outright and the demonstration loses its teeth.
+    const WORDS =
+      `Tokens per second is the number on the pricing page, but it is not the number you feel. What you feel is the wait before anything appears at all, and then whether the words keep up with how fast you read. Sit in front of a chat box and the first half second decides whether the thing seems alive or broken. A stream that starts late can still finish first on the clock and feel slower the whole way there. Throughput is a property of the fleet. Latency is a property of the conversation. Only one of them is in the room with you while you wait for it.`.split(
+        ' ',
+      );
+
+    type Cfg = {
+      ttft: HTMLInputElement;
+      out: HTMLOutputElement;
+      text: HTMLElement;
+      stat: HTMLElement;
+      tps: number;
+    };
+
+    const build = (k: string, tps: number): Cfg | null => {
+      const ttft = document.getElementById(`lat-${k}-ttft`) as HTMLInputElement | null;
+      const out = document.getElementById(`lat-${k}-out`) as HTMLOutputElement | null;
+      const text = document.getElementById(`lat-${k}-text`);
+      const stat = document.getElementById(`lat-${k}-stat`);
+      return ttft && out && text && stat ? { ttft, out, text, stat, tps } : null;
+    };
+    const a = build('a', 45);
+    const b = build('b', 90);
+    if (!a || !b) return;
+
+    const label = (c: Cfg) => (c.out.textContent = `${c.ttft.value} ms`);
+    label(a);
+    label(b);
+    on(a.ttft, 'input', () => label(a));
+    on(b.ttft, 'input', () => label(b));
+
+    let raf = 0;
+    function play() {
+      cancelAnimationFrame(raf);
+      const start = performance.now();
+      const cfgs = [a!, b!].map((c) => ({
+        c,
+        ttft: Number(c.ttft.value),
+        gap: 1000 / c.tps,
+        done: 0,
+      }));
+      cfgs.forEach(({ c }) => {
+        c.text.textContent = '';
+        c.text.classList.add('caret');
+        c.stat.textContent = 'waiting…';
+      });
+
+      const tick = () => {
+        const t = performance.now() - start;
+        let running = false;
+        for (const s of cfgs) {
+          const shown = Math.max(0, Math.min(WORDS.length, Math.floor((t - s.ttft) / s.gap) + 1));
+          if (t < s.ttft) {
+            running = true;
+            continue;
+          }
+          s.c.text.textContent = WORDS.slice(0, shown).join(' ');
+          if (shown >= WORDS.length) {
+            if (!s.done) {
+              s.done = t;
+              s.c.text.classList.remove('caret');
+              s.c.stat.textContent = `first token ${s.ttft} ms · done ${Math.round(s.done)} ms`;
+            }
+          } else {
+            running = true;
+            s.c.stat.textContent = `first token ${s.ttft} ms · streaming…`;
+          }
+        }
+        if (running) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      cleanups.push(() => cancelAnimationFrame(raf));
+    }
+
+    on(run, 'click', play);
+    a.text.textContent = 'Press run.';
+    b.text.textContent = 'Press run.';
+  }
+
+  /* ------------------------------------------------------ 4. what you keep */
+  function initRecall() {
+    const canvas = document.getElementById('canvas-recall') as HTMLCanvasElement | null;
+    const reset = document.getElementById('recall-reset') as HTMLButtonElement | null;
+    const readout = document.getElementById('recall-readout');
+    if (!canvas || !reset || !readout) return;
+
+    const DAYS = 60;
+    const BASE = 2.2; // days of stability after first exposure
+    const GROWTH = 1.9; // each review multiplies stability
+    let colors = palette();
+    let reviews = [0];
+
+    const ctx = fitCanvas(canvas, () => draw());
+
+    /** Ebbinghaus-style retention: exponential decay since the last review,
+        with stability growing on every repetition. */
+    function retention(day: number, at: number[]) {
+      let i = 0;
+      while (i + 1 < at.length && at[i + 1] <= day) i++;
+      return Math.exp(-(day - at[i]) / (BASE * Math.pow(GROWTH, i)));
+    }
+
+    function pad() {
+      return { l: 34, r: 12, t: 14, b: 26 };
+    }
+    const xOf = (d: number, w: number) => {
+      const p = pad();
+      return p.l + (d / DAYS) * (w - p.l - p.r);
+    };
+    const yOf = (r: number, h: number) => {
+      const p = pad();
+      return p.t + (1 - r) * (h - p.t - p.b);
+    };
+
+    function curve(at: number[], w: number, h: number) {
+      ctx.beginPath();
+      for (let d = 0; d <= DAYS; d += 0.25) {
+        const x = xOf(d, w);
+        const y = yOf(retention(d, at), h);
+        d === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+    }
+
+    function draw() {
+      const w = canvas!.clientWidth;
+      const h = canvas!.clientHeight;
+      const p = pad();
+
+      ctx.fillStyle = colors.bg;
+      ctx.fillRect(0, 0, w, h);
+
+      // Axes + gridlines at 0/50/100%.
+      ctx.strokeStyle = withAlpha(colors.border, 0.9);
+      ctx.lineWidth = 1;
+      ctx.fillStyle = withAlpha(colors.dim, 0.85);
+      ctx.font = `500 10px ${SANS}`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (const r of [0, 0.5, 1]) {
+        const y = yOf(r, h);
+        ctx.beginPath();
+        ctx.moveTo(p.l, y);
+        ctx.lineTo(w - p.r, y);
+        ctx.stroke();
+        ctx.fillText(`${r * 100}%`, p.l - 6, y);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      for (let d = 0; d <= DAYS; d += 15) {
+        ctx.fillText(`${d}d`, xOf(d, w), h - 8);
+      }
+
+      // Baseline: what one exposure alone would leave you with.
+      ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = withAlpha(colors.dim, 0.55);
+      curve([0], w, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Actual schedule.
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 2;
+      curve(reviews, w, h);
+      ctx.stroke();
+
+      // Review markers.
+      for (const d of reviews.slice(1)) {
+        const x = xOf(d, w);
+        ctx.strokeStyle = withAlpha(colors.heading, 0.85);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, p.t);
+        ctx.lineTo(x, h - p.b);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x, yOf(1, h), 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = colors.heading;
+        ctx.fill();
+      }
+
+      const end = Math.round(retention(DAYS, reviews) * 100);
+      const solo = Math.round(retention(DAYS, [0]) * 100);
+      readout!.textContent =
+        `${reviews.length - 1} reviews · ${end}% at day ${DAYS}` +
+        (reviews.length > 1 ? ` (vs ${solo}% with none)` : '');
+    }
+
+    on(canvas, 'click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const p = pad();
+      const day = ((e.clientX - rect.left - p.l) / (canvas.clientWidth - p.l - p.r)) * DAYS;
+      if (day <= 0.5 || day > DAYS) return;
+      const d = Math.round(day);
+      if (!reviews.includes(d)) {
+        reviews = [...reviews, d].sort((x, y) => x - y);
+        draw();
+      }
+    });
+    on(reset, 'click', () => {
+      reviews = [0];
+      draw();
+    });
+    onThemeChange(() => {
+      colors = palette();
+      draw();
+    });
+
+    draw();
+  }
+
+  function init() {
+    initWeeks();
+    initCipher();
+    initLatency();
+    initRecall();
+  }
+
+  function teardown() {
+    while (cleanups.length) cleanups.pop()!();
+  }
+
+  document.addEventListener('astro:page-load', init);
+  document.addEventListener('astro:before-swap', teardown);
+</script>

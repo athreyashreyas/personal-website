@@ -1,0 +1,669 @@
+---
+/**
+ * "Life in weeks" — a whole life as one grid of dots, a column per year and a
+ * row per week in it. Set a birthday and the spent weeks fill in exactly.
+ *
+ * The date field is a calendar built in-page rather than <input type="date">:
+ * the native control hands off to an OS/browser picker that ignores the site's
+ * type and theme, and on mobile takes over the whole screen.
+ */
+interface Props {
+  /** Length of the life being drawn, in years. */
+  years?: number;
+  /** Starting value, ISO yyyy-mm-dd. */
+  defaultBirthday?: string;
+}
+
+const { years = 70, defaultBirthday = '2000-01-01' } = Astro.props;
+---
+
+<figure class="liw" data-life-in-weeks data-years={years} data-default={defaultBirthday}>
+  <div class="liw-bar">
+    <div class="liw-picker" data-liw-picker>
+      <button
+        type="button"
+        class="liw-trigger"
+        data-liw-trigger
+        aria-haspopup="dialog"
+        aria-expanded="false"
+      >
+        <span class="liw-trigger-key">Born:</span>
+        <span class="liw-trigger-date" data-liw-label>—</span>
+        <svg class="liw-cal" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+          <path d="M8 3v4M16 3v4M3 10h18"></path>
+        </svg>
+      </button>
+
+      <div class="liw-pop" data-liw-pop role="dialog" aria-label="Choose a birthday" hidden>
+        <div class="liw-pop-head">
+          <button type="button" class="liw-nav" data-liw-nav="-12" aria-label="Previous year">
+            &#171;
+          </button>
+          <button type="button" class="liw-nav" data-liw-nav="-1" aria-label="Previous month">
+            &#8249;
+          </button>
+          <span class="liw-pop-title" data-liw-title aria-live="polite"></span>
+          <button type="button" class="liw-nav" data-liw-nav="1" aria-label="Next month">
+            &#8250;
+          </button>
+          <button type="button" class="liw-nav" data-liw-nav="12" aria-label="Next year">
+            &#187;
+          </button>
+        </div>
+
+        <div class="liw-dow" aria-hidden="true">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span
+            >S</span
+          >
+        </div>
+
+        <div class="liw-days" data-liw-days></div>
+      </div>
+    </div>
+
+    <output class="liw-readout" data-liw-readout>&nbsp;</output>
+  </div>
+
+  <canvas class="liw-canvas" data-liw-canvas></canvas>
+
+  <figcaption class="liw-legend">
+    <span class="liw-key liw-key--spent"></span> spent
+    <span class="liw-key liw-key--left"></span> ahead
+  </figcaption>
+</figure>
+
+<style>
+  .liw {
+    margin: 2rem 0;
+    padding: 0;
+  }
+
+  /* ---- control bar ---- */
+  .liw-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .liw-picker {
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .liw-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    line-height: 1;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.7em 0.95em;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .liw-trigger:hover,
+  .liw-trigger[aria-expanded='true'] {
+    border-color: var(--accent-link);
+  }
+  .liw-trigger:focus-visible {
+    outline: 2px solid var(--accent-link);
+    outline-offset: 2px;
+  }
+
+  /* Both halves inherit the trigger's family and size — only color separates
+     the label from the value. No tabular-nums here: it swaps in a different
+     set of glyph widths and reads as a second typeface next to "Born". */
+  .liw-trigger-key {
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+  .liw-trigger-date {
+    font-weight: 500;
+  }
+
+  .liw-cal {
+    width: 1.3em;
+    height: 1.3em;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    color: var(--text-secondary);
+  }
+  .liw-trigger:hover .liw-cal,
+  .liw-trigger[aria-expanded='true'] .liw-cal {
+    color: var(--accent-link);
+  }
+
+  .liw-readout {
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+  }
+  /* Written by the script, so it never gets Astro's scoping attribute —
+     :global() under the scoped .liw-readout keeps the rule contained. */
+  .liw-readout :global(.liw-sep) {
+    margin: 0 0.55em;
+    color: var(--border);
+  }
+
+  /* ---- popover ---- */
+  .liw-pop {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    width: min(20rem, calc(100vw - 2rem));
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  }
+  .liw-pop[hidden] {
+    display: none;
+  }
+
+  .liw-pop-head {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto auto;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.6rem;
+  }
+  .liw-pop-title {
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .liw-nav {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    /* Comfortable touch target without widening the header. */
+    min-width: 2rem;
+    min-height: 2rem;
+    cursor: pointer;
+  }
+  .liw-nav:hover:not(:disabled) {
+    color: var(--accent-link);
+    border-color: var(--border);
+  }
+  .liw-nav:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .liw-dow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 0.25rem;
+    font-family: var(--font-sans);
+    font-size: 0.62rem;
+    letter-spacing: var(--label-tracking);
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .liw-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  /* Day cells are built in JS, so they never get Astro's scoping attribute and
+     a bare `.liw-day` selector would not match. :global() opts out; the scoped
+     .liw-days ancestor keeps it from leaking off this component. */
+  .liw-days :global(.liw-day) {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .liw-days :global(.liw-day:hover:not(:disabled)) {
+    border-color: var(--accent-link);
+  }
+  .liw-days :global(.liw-day--muted) {
+    color: var(--text-secondary);
+    opacity: 0.45;
+  }
+  .liw-days :global(.liw-day:disabled) {
+    opacity: 0.22;
+    cursor: default;
+  }
+  .liw-days :global(.liw-day--today) {
+    border-color: var(--border);
+    font-weight: 600;
+  }
+  .liw-days :global(.liw-day--on) {
+    background: var(--accent-heading);
+    border-color: var(--accent-heading);
+    color: var(--bg);
+    font-weight: 600;
+  }
+
+  /* ---- grid ---- */
+  /* The backdrop is the element's own background, not something painted into
+     the canvas — CSS transitions var(--bg) on a theme flip, so the panel
+     crossfades with the page instead of holding the old theme's fill. */
+  .liw-canvas {
+    display: block;
+    width: 100%;
+    height: 420px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    touch-action: none;
+  }
+
+  .liw-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.85rem 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+  .liw-key {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .liw-key--spent {
+    background: var(--text-secondary);
+  }
+  .liw-key--left {
+    background: var(--border);
+    margin-left: 0.9rem;
+  }
+
+  /* ---- responsive ---- */
+  @media (max-width: 900px) {
+    .liw-canvas {
+      height: 360px;
+    }
+  }
+  @media (max-width: 640px) {
+    .liw-bar {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .liw-picker {
+      width: 100%;
+    }
+    .liw-trigger {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    .liw-pop {
+      width: min(20rem, calc(100vw - 2rem));
+    }
+    .liw-canvas {
+      height: 300px;
+    }
+  }
+  @media (max-width: 420px) {
+    .liw-canvas {
+      height: 250px;
+    }
+    .liw-readout {
+      font-size: 0.74rem;
+    }
+  }
+  /* Landscape phones: very little vertical room, so the grid has to give. */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .liw-canvas {
+      height: 210px;
+    }
+    /* A panel anchored under the trigger is taller than the viewport here and
+       and centring it still runs under the sticky header. Anchoring to the
+       bottom keeps the whole calendar clear of the nav. The script skips its
+       inline left-nudge in this mode. */
+    .liw-pop {
+      position: fixed;
+      top: auto;
+      bottom: 0.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      max-height: calc(100svh - 5.5rem);
+      overflow-y: auto;
+      z-index: 60;
+    }
+  }
+</style>
+
+<script>
+  const SANS = "'Plus Jakarta Sans', system-ui, sans-serif";
+  // Matches the token crossfade in global.css, with headroom for the last frame.
+  const THEME_FADE_MS = 320;
+  const MIN_DATE = new Date(1930, 0, 1);
+
+  function initLifeInWeeks(root: HTMLElement) {
+    if (root.dataset.liwReady) return;
+    root.dataset.liwReady = '1';
+
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-liw-canvas]');
+    const readout = root.querySelector<HTMLElement>('[data-liw-readout]');
+    const trigger = root.querySelector<HTMLButtonElement>('[data-liw-trigger]');
+    const label = root.querySelector<HTMLElement>('[data-liw-label]');
+    const pop = root.querySelector<HTMLElement>('[data-liw-pop]');
+    const title = root.querySelector<HTMLElement>('[data-liw-title]');
+    const daysEl = root.querySelector<HTMLElement>('[data-liw-days]');
+    if (!canvas || !readout || !trigger || !label || !pop || !title || !daysEl) return;
+
+    // A column per year, a row per week in it. The 52-wide orientation squashes
+    // to ~3px rows in a landscape canvas and reads as stripes, not a grid.
+    const YEARS = Number(root.dataset.years) || 70;
+    const WEEKS = 52;
+
+    // Local midnight, so the count only ticks over when the date does.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const parseISO = (s: string) => {
+      const [y, m, d] = (s || '').split('-').map(Number);
+      return y && m && d ? new Date(y, m - 1, d) : null;
+    };
+    let selected = parseISO(root.dataset.default || '') || new Date(2000, 0, 1);
+    if (selected > today) selected = today;
+    let view = new Date(selected.getFullYear(), selected.getMonth(), 1);
+
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
+
+    /* ---------------------------------------------------------- the grid */
+    function palette() {
+      const cs = getComputedStyle(document.documentElement);
+      const v = (n: string) => cs.getPropertyValue(n).trim();
+      return { dim: v('--text-secondary'), border: v('--border'), accent: v('--accent-link') };
+    }
+    let colors = palette();
+
+    function withAlpha(color: string, a: number) {
+      const fn = color.match(/rgba?\(([^)]+)\)/i);
+      if (!fn) return color;
+      const [r, g, b] = fn[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    const spentDays = () =>
+      Math.max(0, Math.floor((today.getTime() - selected.getTime()) / 864e5));
+    const spentWeeks = () => Math.floor(spentDays() / 7);
+
+    let hover = -1;
+    const ctx = canvas.getContext('2d')!;
+    const size = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    size();
+
+    function geom() {
+      // Tighter gutters on small canvases, where every pixel of dot matters.
+      const p = canvas!.clientWidth < 480 ? 8 : 14;
+      const axis = 14;
+      return {
+        p,
+        cw: (canvas!.clientWidth - p * 2) / YEARS,
+        ch: (canvas!.clientHeight - p * 2 - axis) / WEEKS,
+      };
+    }
+
+    function draw() {
+      const w = canvas!.clientWidth;
+      const h = canvas!.clientHeight;
+      const { p, cw, ch } = geom();
+      const r = Math.max(1, Math.min(cw, ch) * 0.36);
+      const spent = spentWeeks();
+
+      // Transparent, so the element's CSS background shows through and handles
+      // the theme crossfade for us.
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < YEARS * WEEKS; i++) {
+        const year = (i / WEEKS) | 0;
+        const week = i % WEEKS;
+        ctx.beginPath();
+        ctx.arc(
+          p + year * cw + cw / 2,
+          p + week * ch + ch / 2,
+          i === hover ? r * 2.1 : r,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = i === hover ? colors.accent : i < spent ? colors.dim : colors.border;
+        ctx.fill();
+      }
+
+      // Decade ticks — dropped when columns get too tight to label legibly.
+      if (cw >= 5) {
+        ctx.fillStyle = withAlpha(colors.dim, 0.8);
+        ctx.font = `500 10px ${SANS}`;
+        ctx.textAlign = 'center';
+        for (let y = 10; y < YEARS; y += 10) {
+          ctx.fillText(String(y), p + y * cw + cw / 2, h - 3);
+        }
+      }
+
+      const total = YEARS * WEEKS;
+      const parts =
+        hover >= 0
+          ? [`age ${(hover / WEEKS) | 0}`, `week ${(hover % WEEKS) + 1} of that year`]
+          : [
+              `${spent.toLocaleString()} weeks spent (${spentDays().toLocaleString()} days)`,
+              `${Math.max(0, total - spent).toLocaleString()} of ${total.toLocaleString()} ahead`,
+            ];
+      // Every part is composed from numbers and fixed strings here, so there is
+      // nothing to escape. Same rule separator as the recommendation tags.
+      readout!.innerHTML = parts.join('<span class="liw-sep">|</span>');
+    }
+
+    /* ------------------------------------------------------- the calendar */
+    const fmt = new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+
+    function renderCalendar() {
+      title!.textContent = monthFmt.format(view);
+
+      // Monday-first offset for the 1st of the viewed month.
+      const first = new Date(view.getFullYear(), view.getMonth(), 1);
+      const lead = (first.getDay() + 6) % 7;
+      const start = new Date(first);
+      start.setDate(1 - lead);
+
+      daysEl!.replaceChildren();
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'liw-day';
+        btn.textContent = String(d.getDate());
+        if (d.getMonth() !== view.getMonth()) btn.classList.add('liw-day--muted');
+        if (sameDay(d, today)) btn.classList.add('liw-day--today');
+        if (sameDay(d, selected)) {
+          btn.classList.add('liw-day--on');
+          btn.setAttribute('aria-current', 'date');
+        }
+        if (d > today || d < MIN_DATE) btn.disabled = true;
+        btn.addEventListener('click', () => {
+          selected = d;
+          view = new Date(d.getFullYear(), d.getMonth(), 1);
+          syncLabel();
+          draw();
+          close();
+        });
+        daysEl!.appendChild(btn);
+      }
+
+      // Disable navigation that would leave the allowed range entirely.
+      root.querySelectorAll<HTMLButtonElement>('[data-liw-nav]').forEach((b) => {
+        const delta = Number(b.dataset.liwNav);
+        const next = new Date(view.getFullYear(), view.getMonth() + delta, 1);
+        const endOfNext = new Date(next.getFullYear(), next.getMonth() + 1, 0);
+        b.disabled = endOfNext < MIN_DATE || next > today;
+      });
+    }
+
+    const syncLabel = () => (label!.textContent = fmt.format(selected));
+
+    // Short landscape viewports show the panel as a bottom-anchored sheet,
+    // positioned entirely in CSS — an inline `left` here would fight that rule.
+    const isOverlay = () =>
+      window.matchMedia('(orientation: landscape) and (max-height: 540px)').matches;
+
+    function open() {
+      pop!.hidden = false;
+      trigger!.setAttribute('aria-expanded', 'true');
+      renderCalendar();
+
+      if (isOverlay()) {
+        pop!.style.left = '';
+      } else {
+        // Nudge back into view if the anchored panel would run off the right edge.
+        pop!.style.left = '0';
+        const r = pop!.getBoundingClientRect();
+        const overflow = r.right - (window.innerWidth - 12);
+        if (overflow > 0) pop!.style.left = `${-overflow}px`;
+      }
+
+      document.addEventListener('pointerdown', onOutside, true);
+      document.addEventListener('keydown', onKey, true);
+    }
+    function close() {
+      pop!.hidden = true;
+      trigger!.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', onOutside, true);
+      document.removeEventListener('keydown', onKey, true);
+    }
+    const onOutside = (e: Event) => {
+      if (!pop!.contains(e.target as Node) && !trigger!.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        close();
+        trigger!.focus();
+      }
+    };
+
+    trigger.addEventListener('click', () => (pop.hidden ? open() : close()));
+    root.querySelectorAll<HTMLButtonElement>('[data-liw-nav]').forEach((b) => {
+      b.addEventListener('click', () => {
+        view = new Date(view.getFullYear(), view.getMonth() + Number(b.dataset.liwNav), 1);
+        renderCalendar();
+      });
+    });
+
+    /* ------------------------------------------------------------ wiring */
+    let fadeRaf = 0;
+    /**
+     * The theme tokens are animated custom properties, so at the moment
+     * data-theme flips they still hold the OLD colors — a single redraw here
+     * paints the previous theme and never updates again. Repaint every frame
+     * for the length of the crossfade instead.
+     */
+    function repaintThroughThemeChange() {
+      cancelAnimationFrame(fadeRaf);
+      const until = performance.now() + THEME_FADE_MS;
+      const step = () => {
+        colors = palette();
+        draw();
+        if (performance.now() < until) fadeRaf = requestAnimationFrame(step);
+      };
+      fadeRaf = requestAnimationFrame(step);
+    }
+
+    const ro = new ResizeObserver(() => {
+      size();
+      draw();
+    });
+    ro.observe(canvas);
+
+    canvas.addEventListener('pointermove', (e) => {
+      // Coarse pointers have no hover to speak of; tapping shouldn't stick one.
+      if (e.pointerType !== 'mouse') return;
+      const rect = canvas.getBoundingClientRect();
+      const { p, cw, ch } = geom();
+      const year = Math.floor((e.clientX - rect.left - p) / cw);
+      const week = Math.floor((e.clientY - rect.top - p) / ch);
+      const next = year >= 0 && year < YEARS && week >= 0 && week < WEEKS ? year * WEEKS + week : -1;
+      if (next !== hover) {
+        hover = next;
+        draw();
+      }
+    });
+    canvas.addEventListener('pointerleave', () => {
+      if (hover !== -1) {
+        hover = -1;
+        draw();
+      }
+    });
+
+    const mo = new MutationObserver(repaintThroughThemeChange);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener('change', repaintThroughThemeChange);
+
+    document.addEventListener(
+      'astro:before-swap',
+      () => {
+        cancelAnimationFrame(fadeRaf);
+        ro.disconnect();
+        mo.disconnect();
+        mq.removeEventListener('change', repaintThroughThemeChange);
+        close();
+      },
+      { once: true },
+    );
+
+    syncLabel();
+    draw();
+  }
+
+  function boot() {
+    document.querySelectorAll<HTMLElement>('[data-life-in-weeks]').forEach(initLifeInWeeks);
+  }
+
+  document.addEventListener('astro:page-load', boot);
+</script>

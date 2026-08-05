@@ -7,6 +7,9 @@ import ProjectLogo from '../../components/ProjectLogo.astro';
 // <XyzStill /> tags. See components/stills/index.ts for why they're passed in
 // rather than imported by the MDX itself.
 import { stillComponents } from '../../components/stills';
+// The interactive widgets a write-up can embed the same way. Merged with the
+// stills below so MDX sees one flat map of available tags.
+import { embedComponents } from '../../components/embeds';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -56,7 +59,7 @@ const { title, description, status, links } = project.data;
     </header>
 
     <div class="prose">
-      <Content components={stillComponents} />
+      <Content components={{ ...stillComponents, ...embedComponents }} />
     </div>
   </article>
 </BaseLayout>

@@ -38,6 +38,8 @@ Little things make Hisaab stand out. I've built it for everyday Indians who have
 
 I understand that your financials are your business and your business alone. Your ledger is encrypted with a key derived from a passphrase only you know. The passphrase runs through Argon2id (a top grade password hashing function) to a key-encryption process, which wraps a data-encryption key that is then AES-GCM-encrypted (this happens for every record) before it leaves the device. The cloud holds ciphertext and timestamps, nothing related to your actual monetary data. Changing your passphrase refreshes the encryption process without any trouble to you.
 
+<ServerSeesWidget sample="₹2,400 — rent top-up, paid Anil" />
+
 ## Manual for now
 
 The hardest call was refusing to auto-capture bank SMS and UPI transactions. It was the main motivation behind building this app because there is too much friction otherwise to add expenses. A progressive web app (PWA) however can't read SMS on any OS, and bank-linked data in India means going through the regulated Account Aggregator route, which is real work and real compliance. It is also the wrong thing to gate v1 on. So v1 commits fully to making *manual* entry fast and pleasant instead of waiting to ship. Email-alert auto-capture is the planned next step once it can be done properly.

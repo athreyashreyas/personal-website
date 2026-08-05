@@ -35,6 +35,15 @@ const rendered = await Promise.all(
               )}
               {item.data.category && <span class="cat">{item.data.category}</span>}
             </div>
+            {
+              item.data.tags && item.data.tags.length > 0 && (
+                <ul class="tags">
+                  {item.data.tags.map((tag) => (
+                    <li>{tag}</li>
+                  ))}
+                </ul>
+              )
+            }
             <div class="note">
               <Content />
             </div>
@@ -73,7 +82,7 @@ const rendered = await Promise.all(
 
   .row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
   }
@@ -91,13 +100,13 @@ const rendered = await Promise.all(
 
   .cat {
     font-family: var(--font-sans);
-    font-size: 0.68rem;
+    font-size: var(--label-size);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--label-tracking);
     color: var(--text-secondary);
     border: 1px solid var(--border);
     border-radius: 3px;
-    padding: 0.15em 0.5em;
+    padding: 0.05em 0.5em;
   }
 
   .note {
@@ -110,5 +119,28 @@ const rendered = await Promise.all(
   }
   .note :global(p:first-child) {
     margin-top: 0;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.55em;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+  .tags li:not(:last-child)::after {
+    content: '|';
+    margin-left: 0.55em;
+    color: var(--border);
+  }
+  .tags + .note {
+    margin-top: 0.6rem;
   }
 </style>

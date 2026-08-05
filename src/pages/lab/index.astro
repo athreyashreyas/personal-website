@@ -1,27 +1,37 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getEntry, render } from 'astro:content';
+// The interactive blocks the Lab body can embed as bare <XyzWidget /> tags —
+// see components/embeds/index.ts for why they're passed in rather than
+// imported by the MDX itself.
+import { embedComponents } from '../../components/embeds';
+
+// Editable in the CMS under "Lab page" (src/content/lab.mdx).
+const lab = await getEntry('pages', 'lab');
+const { Content } = await render(lab!);
 ---
 
-<BaseLayout title="Lab">
-  <section class="lab-empty">
+<BaseLayout
+  title="Lab"
+  description="One-off interactive things: games, visualizations, and artefacts that don't belong anywhere else."
+  prose={false}
+>
+  <article class="lab">
     <h1><span class="hl-title">Lab</span></h1>
-    <p>
-      Nothing here yet, but check back. This is where one-off interactive
-      things will live: games, visualizations, little toys. Each one gets its
-      own self-contained page.
-    </p>
-    <p class="meta">
-      To add one, drop a new page at
-      <code>src/pages/lab/&lt;experiment&gt;.astro</code>. It can use its own
-      JS, canvas, whatever it needs; the only shared thing is the nav and
-      footer.
-    </p>
-  </section>
+    <Content components={embedComponents} />
+  </article>
 </BaseLayout>
 
 <style>
-  .lab-empty p {
-    max-width: 55ch;
-    margin-top: 1.25rem;
+  .lab :global(h2) {
+    margin-top: 2.75rem;
+    color: var(--accent-heading);
+  }
+  /* Prose stays at a comfortable measure while the embedded widgets are free
+     to use the full width of the wide wrapper. */
+  .lab :global(p),
+  .lab :global(ul),
+  .lab :global(ol) {
+    max-width: var(--measure);
   }
 </style>

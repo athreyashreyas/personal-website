@@ -1,0 +1,203 @@
+---
+/**
+ * "What the server sees" — the privacy claim in Nila and Hisaab, made literal.
+ * Type a note and watch what the other side would actually store. Real AES-GCM
+ * via WebCrypto, with a key generated in the visitor's tab that never leaves it.
+ *
+ * `sample` lets each project frame it with its own kind of data.
+ */
+interface Props {
+  /** Placeholder/default note, e.g. a cycle log or an expense. */
+  sample?: string;
+}
+
+const { sample = 'Period started today. Cramps mild.' } = Astro.props;
+---
+
+<figure class="ss" data-server-sees>
+  <div class="ss-controls">
+    <label class="ss-field">
+      <span>Your note</span>
+      <input class="ss-input" type="text" value={sample} data-ss-input />
+    </label>
+  </div>
+
+  <div class="ss-panes">
+    <div class="ss-pane">
+      <p class="ss-pane-head">On your device</p>
+      <p class="ss-pane-body" data-ss-plain></p>
+    </div>
+    <div class="ss-pane">
+      <p class="ss-pane-head">
+        On the server <span class="ss-tag" data-ss-state>AES-GCM</span>
+      </p>
+      <p class="ss-pane-body ss-mono" data-ss-cipher></p>
+    </div>
+  </div>
+
+  <figcaption class="ss-note">
+    Note: The server output cannot be decrypted or reverse engineered by design
+  </figcaption>
+</figure>
+
+<style>
+  .ss {
+    margin: 2rem 0;
+    padding: 0;
+  }
+
+  .ss-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .ss-field {
+    display: flex;
+    flex: 1 1 26ch;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .ss-input {
+    flex: 1 1 auto;
+    min-width: 12ch;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    letter-spacing: var(--label-tracking);
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.45em 0.6em;
+  }
+  .ss-input:focus-visible {
+    outline: none;
+    border-color: var(--accent-link);
+  }
+
+  .ss-panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .ss-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 7.5rem;
+    padding: 0.85rem 1rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .ss-pane-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.6rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .ss-tag {
+    border: 1px solid var(--accent-heading);
+    border-radius: 3px;
+    padding: 0.1em 0.45em;
+    color: var(--accent-heading);
+  }
+
+  .ss-pane-body {
+    flex: 1;
+    margin: 0;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+  .ss-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .ss-note {
+    margin: 0.8rem auto 0;
+    max-width: 62ch;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .ss-panes {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // One script for every instance on the page: Astro hoists and bundles this
+  // once, so it initialises each [data-server-sees] root rather than assuming
+  // a single widget or relying on ids (which would collide between instances).
+  function initServerSees(root: HTMLElement) {
+    if (root.dataset.ssReady) return;
+    root.dataset.ssReady = '1';
+
+    const input = root.querySelector<HTMLInputElement>('[data-ss-input]');
+    const plainEl = root.querySelector<HTMLElement>('[data-ss-plain]');
+    const cipherEl = root.querySelector<HTMLElement>('[data-ss-cipher]');
+    if (!input || !plainEl || !cipherEl) return;
+
+    // Ephemeral, non-extractable, and scoped to this tab — which is the point
+    // being demonstrated.
+    const keyPromise = crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
+      'encrypt',
+    ]);
+
+    const b64 = (buf: ArrayBuffer) => {
+      let s = '';
+      for (const byte of new Uint8Array(buf)) s += String.fromCharCode(byte);
+      return btoa(s);
+    };
+
+    let seq = 0;
+    async function render() {
+      const text = input!.value;
+      plainEl!.textContent = text || '—';
+
+      const mine = ++seq;
+      const key = await keyPromise;
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ct = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        new TextEncoder().encode(text),
+      );
+      // A newer keystroke may have rendered while this awaited — don't clobber.
+      if (mine !== seq) return;
+      cipherEl!.textContent = text ? `${b64(iv.buffer)}:${b64(ct)}` : '—';
+    }
+
+    input.addEventListener('input', render);
+    render();
+  }
+
+  function boot() {
+    document
+      .querySelectorAll<HTMLElement>('[data-server-sees]')
+      .forEach(initServerSees);
+  }
+
+  document.addEventListener('astro:page-load', boot);
+</script>

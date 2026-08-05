@@ -40,14 +40,15 @@ const recommendations = defineCollection({
     title: z.string(),
     url: optionalUrl,
     category: optionalString,
+    tags: z.array(z.string()).default([]),
     date: z.coerce.date(),
   }),
 });
 
-// Editable single pages (home intro, about), managed as Keystatic singletons
-// that write to src/content/home.mdx and src/content/about.mdx.
+// Editable single pages (home intro, about, lab), managed as Keystatic
+// singletons that write to src/content/<name>.mdx.
 const pages = defineCollection({
-  loader: glob({ pattern: '{home,about}.mdx', base: './src/content' }),
+  loader: glob({ pattern: '{home,about,lab}.mdx', base: './src/content' }),
   schema: z.object({}),
 });
 

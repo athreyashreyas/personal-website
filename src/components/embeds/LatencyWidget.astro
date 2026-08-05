@@ -1,0 +1,301 @@
+---
+/**
+ * "The number you feel" — the point the inference benchmark is actually
+ * about. Two streams with the same text: A starts fast and runs slower, B
+ * stalls then runs at double the rate. B finishes sooner on the clock and
+ * still feels worse the whole way.
+ *
+ * Nothing here calls a model; it replays two timing profiles so the difference
+ * is felt rather than read off a table.
+ */
+interface Props {
+  /** Time to first token, milliseconds. */
+  aTtft?: number;
+  bTtft?: number;
+  /** Streaming rate once started, tokens (here: words) per second. */
+  aTps?: number;
+  bTps?: number;
+  aLabel?: string;
+  bLabel?: string;
+  caption?: string;
+}
+
+const {
+  aTtft = 180,
+  bTtft = 1200,
+  aTps = 45,
+  bTps = 90,
+  aLabel = 'A',
+  bLabel = 'B',
+  caption = 'A simulation of two timing profiles, not a live model call. Drag either slider to change its time to first token.',
+} = Astro.props;
+---
+
+<figure
+  class="lw"
+  data-latency
+  data-a-ttft={aTtft}
+  data-b-ttft={bTtft}
+  data-a-tps={aTps}
+  data-b-tps={bTps}
+>
+  <div class="lw-controls">
+    <button type="button" class="lw-btn" data-lw-run>Run both</button>
+
+    <label class="lw-field">
+      <span>{aLabel} · first token</span>
+      <input type="range" min="50" max="2000" step="10" value={aTtft} data-lw-slider="a" />
+      <output class="lw-out" data-lw-out="a"></output>
+    </label>
+
+    <label class="lw-field">
+      <span>{bLabel} · first token</span>
+      <input type="range" min="50" max="2000" step="10" value={bTtft} data-lw-slider="b" />
+      <output class="lw-out" data-lw-out="b"></output>
+    </label>
+  </div>
+
+  <div class="lw-panes">
+    <div class="lw-pane">
+      <p class="lw-pane-head">{aLabel} <span class="lw-tag">{aTps} tok/s</span></p>
+      <p class="lw-body" data-lw-text="a"></p>
+      <p class="lw-stat" data-lw-stat="a"></p>
+    </div>
+    <div class="lw-pane">
+      <p class="lw-pane-head">{bLabel} <span class="lw-tag">{bTps} tok/s</span></p>
+      <p class="lw-body" data-lw-text="b"></p>
+      <p class="lw-stat" data-lw-stat="b"></p>
+    </div>
+  </div>
+
+  <figcaption class="lw-caption">{caption}</figcaption>
+</figure>
+
+<style>
+  .lw {
+    margin: 2rem 0;
+    padding: 0;
+  }
+
+  .lw-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 0.85rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .lw-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .lw-field input[type='range'] {
+    width: 104px;
+    accent-color: var(--accent-link);
+  }
+  .lw-out {
+    font-variant-numeric: tabular-nums;
+    min-width: 6ch;
+  }
+
+  .lw-btn {
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.35em 0.9em;
+    cursor: pointer;
+  }
+  .lw-btn:hover {
+    border-color: var(--accent-link);
+    color: var(--accent-link);
+  }
+
+  .lw-panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .lw-pane {
+    display: flex;
+    flex-direction: column;
+    padding: 0.85rem 1rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .lw-pane-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.6rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+  .lw-tag {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1em 0.45em;
+  }
+
+  .lw-body {
+    flex: 1;
+    margin: 0;
+    min-height: 9.5rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .lw-body[data-waiting]::after {
+    content: '▍';
+    color: var(--accent-link);
+  }
+
+  .lw-stat {
+    margin: 0.75rem 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .lw-stat[data-first] {
+    color: var(--accent-heading);
+  }
+
+  .lw-caption {
+    margin: 0.75rem 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 640px) {
+    .lw-panes {
+      grid-template-columns: 1fr;
+    }
+    .lw-body {
+      min-height: 6rem;
+    }
+  }
+</style>
+
+<script>
+  // Long enough that B's throughput advantage actually overtakes A's head
+  // start — below roughly 92 words A simply wins and the demonstration has no
+  // teeth. This is the whole reason the passage is this length.
+  const PASSAGE =
+    `Tokens per second is the number on the pricing page, but it is not the number you feel. What you feel is the wait before anything appears at all, and then whether the words keep up with how fast you read. Sit in front of a chat box and the first half second decides whether the thing seems alive or broken. A stream that starts late can still finish first on the clock and feel slower the whole way there. Throughput is a property of the fleet. Latency is a property of the conversation. Only one of them is in the room with you while you wait for it.`.split(
+      ' ',
+    );
+
+  function initLatency(root: HTMLElement) {
+    if (root.dataset.lwReady) return;
+    root.dataset.lwReady = '1';
+
+    const runBtn = root.querySelector<HTMLButtonElement>('[data-lw-run]');
+    if (!runBtn) return;
+
+    type Lane = {
+      key: 'a' | 'b';
+      slider: HTMLInputElement;
+      out: HTMLElement;
+      text: HTMLElement;
+      stat: HTMLElement;
+      gap: number;
+    };
+
+    const lane = (key: 'a' | 'b'): Lane | null => {
+      const slider = root.querySelector<HTMLInputElement>(`[data-lw-slider="${key}"]`);
+      const out = root.querySelector<HTMLElement>(`[data-lw-out="${key}"]`);
+      const text = root.querySelector<HTMLElement>(`[data-lw-text="${key}"]`);
+      const stat = root.querySelector<HTMLElement>(`[data-lw-stat="${key}"]`);
+      const tps = Number(root.dataset[key === 'a' ? 'aTps' : 'bTps']) || 45;
+      return slider && out && text && stat
+        ? { key, slider, out, text, stat, gap: 1000 / tps }
+        : null;
+    };
+
+    const lanes = [lane('a'), lane('b')].filter(Boolean) as Lane[];
+    if (lanes.length !== 2) return;
+
+    const label = (l: Lane) => (l.out.textContent = `${l.slider.value} ms`);
+    lanes.forEach((l) => {
+      label(l);
+      l.slider.addEventListener('input', () => label(l));
+      l.text.textContent = 'Press run.';
+    });
+
+    let raf = 0;
+    runBtn.addEventListener('click', () => {
+      cancelAnimationFrame(raf);
+      const start = performance.now();
+      const runs = lanes.map((l) => ({ l, ttft: Number(l.slider.value), done: 0 }));
+
+      runs.forEach(({ l }) => {
+        l.text.textContent = '';
+        l.text.setAttribute('data-waiting', '');
+        l.stat.removeAttribute('data-first');
+        l.stat.textContent = 'waiting…';
+      });
+
+      const tick = () => {
+        const t = performance.now() - start;
+        let running = false;
+
+        for (const r of runs) {
+          if (t < r.ttft) {
+            running = true;
+            continue;
+          }
+          const shown = Math.min(PASSAGE.length, Math.floor((t - r.ttft) / r.l.gap) + 1);
+          r.l.text.textContent = PASSAGE.slice(0, shown).join(' ');
+
+          if (shown >= PASSAGE.length) {
+            if (!r.done) {
+              r.done = t;
+              r.l.text.removeAttribute('data-waiting');
+              r.l.stat.textContent = `first token ${r.ttft} ms · done ${Math.round(r.done)} ms`;
+            }
+          } else {
+            running = true;
+            r.l.stat.textContent = `first token ${r.ttft} ms · streaming…`;
+          }
+        }
+
+        if (running) {
+          raf = requestAnimationFrame(tick);
+        } else {
+          // Mark whichever actually finished first on the clock — usually the
+          // one that felt worse, which is the point.
+          const winner = runs.reduce((x, y) => (x.done <= y.done ? x : y));
+          winner.l.stat.setAttribute('data-first', '');
+          winner.l.stat.textContent += ' · finished first';
+        }
+      };
+      raf = requestAnimationFrame(tick);
+    });
+  }
+
+  function boot() {
+    document.querySelectorAll<HTMLElement>('[data-latency]').forEach(initLatency);
+  }
+
+  document.addEventListener('astro:page-load', boot);
+</script>

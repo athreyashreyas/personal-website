@@ -5,6 +5,7 @@ import {
   humanizeStillName,
   stillNameFromPath,
 } from './src/lib/stills';
+import { EMBED_LABELS, embedNameFromPath } from './src/lib/embeds';
 
 // Project write-ups embed Astro "still" components (screenshot mock-ups) as
 // bare <XyzStill /> JSX tags. Keystatic's MDX editor needs every component
@@ -43,6 +44,19 @@ const stillComponents = Object.fromEntries(
     .map((name) => [name, still(STILL_LABELS[name] ?? humanizeStillName(name))]),
 );
 
+// The interactive embeds (<LatencyWidget />, <ServerSeesWidget />) register the
+// same way and for the same reason. They do take props on the site, but the CMS
+// only needs to know the tag exists — props stay hand-written in the MDX, so the
+// schema here is empty like the stills'.
+const embedComponents = Object.fromEntries(
+  Object.keys(import.meta.glob('./src/components/embeds/*Widget.astro'))
+    .map(embedNameFromPath)
+    .sort()
+    .map((name) => [name, still(EMBED_LABELS[name] ?? humanizeStillName(name))]),
+);
+
+const contentComponents = { ...stillComponents, ...embedComponents };
+
 // Local storage: editing happens in `npm run dev` at /keystatic and writes
 // files straight into this repo — no login, no database. To later edit from
 // anywhere (incl. phone), switch `kind` to 'github' and add the GitHub app.
@@ -69,6 +83,27 @@ export default config({
               publicPath: '/images/home/',
             },
           },
+        }),
+      },
+    }),
+
+    lab: singleton({
+      label: 'Lab page',
+      path: 'src/content/lab',
+      format: { contentField: 'body' },
+      entryLayout: 'content',
+      schema: {
+        body: fields.mdx({
+          label: 'Lab',
+          description:
+            'The Lab page. Drop in an interactive block (e.g. the life-in-weeks grid) anywhere in the body.',
+          options: {
+            image: {
+              directory: 'public/images/lab',
+              publicPath: '/images/lab/',
+            },
+          },
+          components: contentComponents,
         }),
       },
     }),
@@ -174,7 +209,7 @@ export default config({
               publicPath: '/images/projects/',
             },
           },
-          components: stillComponents,
+          components: contentComponents,
         }),
       },
     }),
@@ -195,6 +230,10 @@ export default config({
         category: fields.text({
           label: 'Category',
           description: 'Optional — e.g. Book, Article, Tool, Rabbit hole.',
+        }),
+        tags: fields.array(fields.text({ label: 'Tag' }), {
+          label: 'Tags',
+          itemLabel: (props) => props.value,
         }),
         date: fields.date({
           label: 'Date added',

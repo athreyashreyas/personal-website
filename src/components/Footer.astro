@@ -68,7 +68,11 @@ const resume = 'https://athreyashreyas.github.io/resume/resume_latest.pdf';
     justify-content: space-between;
     gap: 0.6rem 1rem;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    /* A step up from --label-size: the footer stands alone, so it needs more
+       presence than a badge sitting next to a title. */
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
   }
 
   .icons {
