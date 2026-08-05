@@ -106,9 +106,11 @@ const { years = 70, defaultBirthday = '2000-01-01' } = Astro.props;
     border-radius: var(--radius);
     padding: 0.7em 0.95em;
     cursor: pointer;
-    transition:
-      border-color 0.15s ease,
-      color 0.15s ease;
+    /* No transition on border-color/color here on purpose. --border is already
+       being animated on :root, so easing toward it compounds: the element
+       chases a value that is itself still moving and lands ~100ms after the
+       canvas border below. Reading the interpolated token directly puts both
+       on one clock. Hover snaps, same as .liw-nav and the day cells. */
   }
   .liw-trigger:hover,
   .liw-trigger[aria-expanded='true'] {
