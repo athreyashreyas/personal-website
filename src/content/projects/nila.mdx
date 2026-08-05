@@ -1,37 +1,60 @@
 ---
 title: Nila
-description: A menstrual cycle tracker where the server, by construction, never sees a single health detail.
+description: >-
+  A menstrual cycle tracker where the server, by construction, never sees a
+  single health detail.
 status: active
-date: 2025-06-15
+date: 2026-04-27
 links:
-  {
-    repo: 'https://github.com/athreyashreyas/nila',
-    live: 'https://nila-delta.vercel.app/',
-  }
+  repo: https://github.com/athreyashreyas/nila
+  live: https://nila-delta.vercel.app/
 ---
+## What is it?&#x20;
 
-Nila opens on where you are right now. One ring, coloured by the phase you're in
-and filled to how far through the cycle you've come, with today marked on it and
-the day-in-phase at the centre. Underneath, a plain prediction: period expected
-in about nine days.
+Ask any woman in your life what they do to track their menstrual cycle and they'll name of the common period tracking apps (Flo, Clue etc.) or some manual approximate method that is tedious.
+
+The apps sound great until you find out that Flo has been repetitively sued (successfully) by consumers for selling customer data to companies like Google, Facebook and apps like Clue promise data privacy but host data on foreign servers which are cannot be regulated by native governments or be influenced easily by consumers. \
+\
+What does that mean for an Indian woman? It means that simply forgetting to log your period during your cycle (or getting it late for a myriad of reasons) could result in you getting IVF ads on Whatsapp, or having your Youtube feed be chock-full of contraceptive and maternity content for no reason whatsoever. It could mean everything from targeted Amazon ads to companies using your data without your consent for their own ends.
+
+\
+Nila (Tamil for "Moon") was built to solve that problem. It is a privacy first, all local, encrypted menstrual cycle app that reliably tracks your period, takes your inputs on how you're feeling and suggests relevant remedies to feel better. It does all this on locally on your device without any of the plaintext data reaching the server ever. The repository is public and it is a social product built to make an essential service available with minimal friction, fear or overhead.&#x20;
+
+While most of the apps are businesses that hold your cycle data on your servers and ask you to pay them, Nila is simply free software that works.&#x20;
+
+## How does it work?&#x20;
+
+Nila begins by asking you details about your past cycles and uses a prediction algorithm that predicts each part of your cycle (follicular, ovulation, luteal and menstrual) to give you clarity on what is the current picture of the cycle alongside relative hormone levels.
 
 <NilaStill />
 
-Every bit of that is worked out on your device. Given what period-tracking data
-has been used for, Nila starts from a hard rule: the server must never be able to
-read a single health detail, which means the predictions can't be computed
-anywhere but on your own phone.
-
 ## Logging a day
 
-A check-in is a few taps: mood, energy, flow, whatever symptoms showed up, and a
-note if you want one. Over time those feed the pattern cards back on the home
-screen, the quiet "you tend to log cramps in your luteal phase" kind of
-observation. Each entry is encrypted on the device before it ever syncs.
+A check-in is a few taps: mood, energy, flow, whatever symptoms showed up, and a note if you want one. Over time those feed the pattern cards back on the home screen while dynamically updating relative phase days and hormone levels. Each entry is encrypted on the device before it ever syncs.
 
 <NilaCheckinStill />
 
-## Zero-knowledge by construction
+## The prediction, and how it updates
+
+The algorithm used to help gain clarity on your period dates isn't static, like all good models, it updates based on the newest information with the most recent cycles counted highest, so the prediction leans toward how your body is behaving lately rather than an average from months ago. Implausible entries, a cycle under 18 days or over 45, a period longer than 10, get filtered out before they can skew anything.&#x20;
+
+Confidence is reported honestly too: fewer than two logged cycles and Nila says so plainly rather than pretending precision it doesn't have; four or more and it calls itself high-confidence.&#x20;
+
+Ovulation is anchored off the *next* predicted period minus a fixed 14-day luteal phase, the one part of the cycle that stays biologically constant, with a two-day window either side.&#x20;
+
+Log a new period and every one of those numbers, the ring, the day count, the confidence, recomputes immediately from the updated history, nothing is cached or batch-recalculated overnight.
+
+## Insights, and what to eat
+
+On top of all that, we have insights, which turn your logs and check ins into something to act upon. It gives you the essential metrics about your period history (average cycle length, average period length, and days until the next one) with associated confidence levels.&#x20;
+
+<NilaInsightsStill />
+
+Underneath that sit food recommendations built from an actual phase-specific database: eight candidate foods per phase, each with a real physiological reason, magnesium for cramping, DIM to help clear estrogen in the follicular phase, tryptophan for the serotonin dip in luteal etc.
+
+If you logged a symptom today, cramps or bloating or a headache, the matching foods get boosted to the top and the first is tagged a "top pick," making the list most helpful to how you uniquely feel and experience your cycle. A vegetarian toggle swaps the handful of non-veg entries, salmon, eggs, turkey, for veg alternatives so that everyone can benefit from what is best for their body and diet.
+
+## Encryption and stack details for nerds
 
 The master key is derived from your password with PBKDF2 and never leaves the
 device. Every cycle and daily log is AES-256-GCM encrypted on the client; the
@@ -40,7 +63,19 @@ recovery phrase gets you back in without the password, and the same password
 unlocks the same data on iPhone and iPad. "We don't look at your data" is a
 promise; Nila is built so that the server structurally cannot.
 
-Built on Next.js 16 (App Router) and TypeScript, Tailwind and Framer Motion,
+*Built on Next.js 16 (App Router) and TypeScript, Tailwind and Framer Motion,
 Supabase for auth and encrypted storage only, and the `@noble` and `@scure`
 libraries for the crypto. Installable, offline-capable, with a theme that syncs
-across devices and iOS push for period reminders.
+across devices and iOS push for period reminders.*
+
+## Please try it!&#x20;
+
+Please refer to the link (next to the Github repo icon) at the top of this page:
+
+On iPhone, open the link in Safari, tap the Share icon, then **Add to Home Screen**: this also turns on push notifications for reminders.&#x20;
+
+On Android, open it in Chrome, tap the **⋮** menu, then **Install app** (or **Add to Home Screen**, depending on the browser).&#x20;
+
+On a computer there's nothing to set up. it just runs in the browser.
+
+The onboarding is the same thereafter. I'd be glad to hear any feedback/complaints about the product. Please feel free to write at [*athreya.shreyas@gmail.com*](mailto:athreya.shreyas@gmail.com).

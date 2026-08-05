@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LLM Inference Benchmark">
+  <defs>
+    <!-- Amber into teal: the two platforms' palettes meeting in one mark. -->
+    <linearGradient id="bolt" x1="18" y1="6" x2="46" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5A742"/>
+      <stop offset="0.55" stop-color="#7FC8A9"/>
+      <stop offset="1" stop-color="#4F9E86"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="#1C201D"/>
+
+  <!-- Latency bars: the benchmark behind the bolt. Unequal by design. -->
+  <g fill="#3A423C">
+    <rect x="9" y="17" width="20" height="3.5" rx="1.75"/>
+    <rect x="9" y="30.25" width="12" height="3.5" rx="1.75"/>
+    <rect x="9" y="43.5" width="16" height="3.5" rx="1.75"/>
+  </g>
+
+  <path d="M37.5 7 L20.5 35.5 H30.5 L27.5 57 L45.5 27.5 H34.5 Z"
+        fill="url(#bolt)" stroke="#1C201D" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>

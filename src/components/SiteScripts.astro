@@ -1,0 +1,202 @@
+---
+/**
+ * The site's inline head scripts, kept together and out of BaseLayout.
+ *
+ * All of these are `is:inline` on purpose:
+ *  - the theme init has to run before first paint, so it can't be a deferred
+ *    module script;
+ *  - the rest attach delegated listeners at the document and are guarded to
+ *    bind exactly once, which is what lets them survive in-place
+ *    (view-transition) navigations where the <head> is re-evaluated.
+ *
+ * They're deliberately plain ES5-ish and dependency-free — they run before
+ * anything else on the page, including the bundle.
+ */
+---
+
+{/* No-flash theme init: set data-theme before first paint. Also re-applied
+    after every view-transition swap, because the swap copies the incoming
+    (server-rendered) <html>'s attributes over the current ones and would
+    otherwise wipe the client-set data-theme. */}
+<script is:inline>
+  (function () {
+    function preferredTheme() {
+      try {
+        var stored = localStorage.getItem('theme');
+        if (stored === 'dark' || stored === 'light') return stored;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+      } catch (e) {
+        /* storage/matchMedia unavailable; CSS media query handles it */
+        return null;
+      }
+    }
+
+    function applyTheme() {
+      var theme = preferredTheme();
+      if (theme) document.documentElement.setAttribute('data-theme', theme);
+    }
+
+    applyTheme();
+
+    if (window.__themeBound) return;
+    window.__themeBound = true;
+
+    // Before paint, so there's no flash across a navigation.
+    document.addEventListener('astro:after-swap', applyTheme);
+
+    function current() {
+      return document.documentElement.getAttribute('data-theme') === 'dark'
+        ? 'dark'
+        : 'light';
+    }
+
+    function reflect() {
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.setAttribute('aria-pressed', String(current() === 'dark'));
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('#theme-toggle') : null;
+      if (!btn) return;
+      var next = current() === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem('theme', next);
+      } catch (err) {
+        /* storage unavailable; toggle still works for the session */
+      }
+      reflect();
+    });
+    document.addEventListener('astro:page-load', reflect);
+
+    // Follow the OS theme live — but only while the reader hasn't made an
+    // explicit choice (no stored preference). An explicit toggle wins.
+    try {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener('change', function (e) {
+        if (!localStorage.getItem('theme')) {
+          document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+          reflect();
+        }
+      });
+    } catch (err) {
+      /* matchMedia unavailable; initial inference still applies */
+    }
+
+    reflect();
+  })();
+</script>
+
+{/* The nav is transition:persist'd (so it doesn't cross-fade and briefly show
+    two selected items). Because it persists, re-mark the current link here
+    after each navigation — this mirrors isCurrent() in Nav.astro, which does
+    the same on the server for the initial render.
+
+    The mobile dropdown is closed here too: <details> handles opening; this
+    just tidies it away after navigating or clicking outside it. */}
+<script is:inline>
+  (function () {
+    if (window.__navBound) return;
+    window.__navBound = true;
+
+    function trim(p) {
+      return p.replace(/\/+$/, '') || '/';
+    }
+
+    function updateNavCurrent() {
+      var path = trim(location.pathname);
+      document.querySelectorAll('.site-nav a[href]').forEach(function (a) {
+        var href = trim(a.getAttribute('href'));
+        var isCurrent =
+          href === '/' ? path === '/' : path === href || path.indexOf(href + '/') === 0;
+        if (isCurrent) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
+    }
+
+    function closeMenus() {
+      document.querySelectorAll('details.nav-dd[open]').forEach(function (d) {
+        d.open = false;
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      var dd = t && t.closest ? t.closest('details.nav-dd') : null;
+      // A link inside the menu was clicked: let it navigate, then close.
+      if (dd && t.closest('a')) {
+        closeMenus();
+        return;
+      }
+      // A click anywhere outside an open menu closes it.
+      if (!dd) closeMenus();
+    });
+
+    document.addEventListener('astro:page-load', function () {
+      updateNavCurrent();
+      closeMenus();
+    });
+    updateNavCurrent();
+  })();
+</script>
+
+{/* Top navigation progress bar. Starts when a view-transition navigation
+    begins, completes when the new page has loaded. Bound once; the bar element
+    is transition:persist'd so its state survives the swap.
+
+    start/done are exposed on window so a page can hold the bar open past the
+    normal page-load moment — e.g. the home page keeps it loading until its
+    hero image has actually decoded, instead of letting the bar (and the rest
+    of the page) read as "done" while that image is still going to pop in.
+    See index.astro. */}
+<script is:inline>
+  (function () {
+    if (window.__navProgressBound) return;
+    window.__navProgressBound = true;
+
+    var doneTimer;
+
+    function bar() {
+      return document.getElementById('nav-progress');
+    }
+
+    function start() {
+      var el = bar();
+      if (!el) return;
+      clearTimeout(doneTimer);
+      el.classList.remove('is-done');
+      // Reset to 0 without a transition, then force reflow so the grow
+      // animation runs from the start on every navigation.
+      el.classList.remove('is-loading');
+      void el.offsetWidth;
+      el.classList.add('is-loading');
+    }
+
+    function done() {
+      var el = bar();
+      if (!el) return;
+      el.classList.remove('is-loading');
+      el.classList.add('is-done');
+      // After the fade-out, return to the idle base state.
+      doneTimer = setTimeout(function () {
+        el.classList.remove('is-done');
+      }, 500);
+    }
+
+    window.__navProgress = { start: start, done: done };
+    document.addEventListener('astro:before-preparation', start);
+
+    // A page can override how "done" is decided (see index.astro) by setting
+    // window.__navProgressGate to a function that calls done() itself once
+    // ready. It's read fresh here, not captured — Astro dedupes identical
+    // inline scripts by content, so a page's own gate-setting script may only
+    // execute once per session even across repeat visits, but the gate
+    // function still re-queries the live DOM on each call, so a stale
+    // reference stays correct.
+    document.addEventListener('astro:page-load', function () {
+      (window.__navProgressGate || done)();
+    });
+  })();
+</script>

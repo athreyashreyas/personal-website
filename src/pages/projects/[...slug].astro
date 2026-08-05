@@ -3,32 +3,10 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectLinks from '../../components/ProjectLinks.astro';
 import ProjectLogo from '../../components/ProjectLogo.astro';
-import AttendQuickMarkStill from '../../components/stills/AttendQuickMarkStill.astro';
-import AttendStill from '../../components/stills/AttendStill.astro';
-import HarmonyStill from '../../components/stills/HarmonyStill.astro';
-import HarmonyTodayStill from '../../components/stills/HarmonyTodayStill.astro';
-import HisaabStill from '../../components/stills/HisaabStill.astro';
-import NilaCheckinStill from '../../components/stills/NilaCheckinStill.astro';
-import NilaStill from '../../components/stills/NilaStill.astro';
-import RituHomeStill from '../../components/stills/RituHomeStill.astro';
-import RituStill from '../../components/stills/RituStill.astro';
-
-// Provided here (instead of imported per-file in each project's MDX body) so
-// Keystatic's MDX editor — which can't parse hand-written `import` statements
-// in content, only registered component tags — can open every project entry.
-// See the matching `components` map in keystatic.config.tsx for the admin
-// side of this same registration.
-const stillComponents = {
-  AttendQuickMarkStill,
-  AttendStill,
-  HarmonyStill,
-  HarmonyTodayStill,
-  HisaabStill,
-  NilaCheckinStill,
-  NilaStill,
-  RituHomeStill,
-  RituStill,
-};
+// The screenshot "stills" a project write-up can drop into its body as bare
+// <XyzStill /> tags. See components/stills/index.ts for why they're passed in
+// rather than imported by the MDX itself.
+import { stillComponents } from '../../components/stills';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');

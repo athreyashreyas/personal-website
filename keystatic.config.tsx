@@ -1,5 +1,10 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
 import { block } from '@keystatic/core/content-components';
+import {
+  STILL_LABELS,
+  humanizeStillName,
+  stillNameFromPath,
+} from './src/lib/stills';
 
 // Project write-ups embed Astro "still" components (screenshot mock-ups) as
 // bare <XyzStill /> JSX tags. Keystatic's MDX editor needs every component
@@ -27,17 +32,16 @@ function still(label: string) {
   });
 }
 
-const stillComponents = {
-  AttendQuickMarkStill: still('Attend — quick-mark still'),
-  AttendStill: still('Attend still'),
-  HarmonyStill: still('Harmony still'),
-  HarmonyTodayStill: still('Harmony — today still'),
-  HisaabStill: still('Hisaab still'),
-  NilaCheckinStill: still('Nila — check-in still'),
-  NilaStill: still('Nila still'),
-  RituHomeStill: still('Ritu — home still'),
-  RituStill: still('Ritu still'),
-};
+// Every still that exists on disk gets a definition, so a newly added one can
+// never be missing from here — that's what makes an entry fail to open. Names
+// come from the files themselves; the readable labels come from
+// src/lib/stills.ts, with a derived fallback if one hasn't been written yet.
+const stillComponents = Object.fromEntries(
+  Object.keys(import.meta.glob('./src/components/stills/*Still.astro'))
+    .map(stillNameFromPath)
+    .sort()
+    .map((name) => [name, still(STILL_LABELS[name] ?? humanizeStillName(name))]),
+);
 
 // Local storage: editing happens in `npm run dev` at /keystatic and writes
 // files straight into this repo — no login, no database. To later edit from

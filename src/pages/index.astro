@@ -60,6 +60,14 @@ const { Content } = await render(home!);
         np.done();
         return;
       }
+      // The image is lazy-loaded, so on a phone it can sit far below the fold
+      // and not start loading until the reader scrolls to it. There's no
+      // pop-in to cover in that case — and waiting for a `load` that may be
+      // minutes away would strand the bar at 90% for the whole visit.
+      if (img.getBoundingClientRect().top > window.innerHeight * 1.5) {
+        np.done();
+        return;
+      }
       var bar = document.getElementById('nav-progress');
       if (bar && !bar.classList.contains('is-loading')) np.start();
       img.addEventListener('load', np.done, { once: true });

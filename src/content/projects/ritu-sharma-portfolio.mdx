@@ -1,43 +1,43 @@
 ---
-title: Ritu Sharma Art
-description: A watercolour & oil painting portfolio and sales site the artist can run entirely herself.
+title: Ritu Sharma's Art Website
+description: >-
+  A watercolour & oil painting portfolio and sales site the artist can run
+  entirely herself.
 status: active
-date: 2024-11-15
-links: { live: 'https://ritu-sharma-art.vercel.app/' }
+date: 2026-07-29
+links:
+  live: https://ritu-sharma-art.vercel.app/
+---
+*The artist in her [own](https://ritu-sharma-art.vercel.app/about) words:*
+
+> "Ritu Sharma is a contemporary Indian artist who works primarily in acrylics, while also exploring watercolours and charcoal. She believes in creating art that radiates positivity, joy, and warmth.
+>
+> Her art captures the beauty in nature and everyday moments through expressive colours.&#x20;
+>
+> Each of her cherished creations reflect harmony, joy, and a deep connection with the vibrant essence of life. In this fast-paced world, she aims to bring a sense of calm and inspiration to personal spaces."
+
 ---
 
-You land on a single painting, full bleed, with its title and medium and one
-quiet invitation to see it up close. There's no hero copy or carousel competing
-with the work; the newest piece simply fills the screen and changes as she adds
-to the collection.
+This project has been my personal favourite because of how much I enjoyed building it. The website was built in collaboration with the artist and her team, and their innate artistic flair informed much of the design choices on the website. My value add was the technical know-how, fast execution, quick iteration on candidate designs and a robust backend setup that would scale and last.
+
+On a personal note, I highly recommend checking her work out and considering her for a great bespoke art piece you might want to add to your home. She is one of the warmest, kindest and dedicated people I've had the privilege to come across, and I hope that you'll feel it too from her work.
+
+Here are the highlights of the web experience:
+
+You land on a single painting, full bleed, with its title and medium alongside one understated and tasteful invitation to see it up close. The newest piece fills the screen and changes as she adds to the collection.
 
 <RituHomeStill />
 
-## Browsing, and buying
+## Browsing, and Buying
 
-From there the Gallery is the heart of it: every original, in a masonry grid you
-can narrow by medium, collection, price, and whether a piece is still available.
-Tap any painting and you get its full page, the story behind it, and a way to
-enquire or commission. It's built to make a small catalogue feel considered
-rather than a wall of thumbnails.
+From there the Gallery is the heart of it: every original work the artist has shared with the world, in a masonry grid you can narrow by medium, collection, price, and whether a piece is still available. Tap any painting and you'll get its full page, the story behind it, and a way to enquire about the painting or commission a fresh one. The gallery is built to make a small catalogue feel considered rather than a wall of thumbnails.
 
 <RituStill />
 
-## The real constraint
+## The Key Design Choices
 
-The hard part was never the front end. It was who maintains it. Ritu needed to
-add and sell paintings, and edit her own About page, with no technical knowledge
-and no phone call to me. So the CMS is a Sanity Studio embedded right in the site,
-images go through Cloudinary, and there's a plain-language guide that walks her
-through adding a painting from start to finish. If the site needs a developer to
-update it, the brief has failed.
+* I wanted there to be no friction or intermediaries between the artist and her customers when it came to what she put out there on the website. Whether that be modifying her written sections or changing artworks and their details, it was clear that we had to wire a seamless content management system (CMS) that required zero technical know-how and which worked flawlessly. We did this via Sanity Studio and Cloudinary. I am happy to share that the artist and her team have now seamlessly modified and updated the website numerous times now without my involvement.
+* Product taste in this project was very much informed by the customer and the clear vision they had for their project. I learnt more technically in terms of what I could do for SEO optimisation, reliable hosting and good repository structure/design.
+* Much of the heavy work was done by claude code, but you'll notice that the website feels anything but AI generated. Painstaking attention was given to every button, animation, interaction and colour palette to make this a lasting product of human craftsmanship, something I have been very grateful to Noor (The artist's daughter and primary aid) and Ritu aunty for. More than textbooks, it is working with them that has helped me improve my product and aesthetic sense.
 
-A few decisions followed from that. The whole interface runs out of the box on
-placeholder content, so it could be built and reviewed before any backend was
-wired up. SEO got real attention, with per-page metadata, dynamic OG images and
-structured data, because a painter's site nobody can find isn't doing its one
-job. And the escape hatches are written down: a runbook for moving off any
-provider without re-uploading every image by hand, so she's never locked in.
-
-Built on Next.js 16 (App Router), React 19, Sanity v6, Cloudinary, and Tailwind,
-with Resend for the inquiry emails.
+*Built on Next.js 16 (App Router), React 19, Sanity v6, Vercel, Cloudinary, and Tailwind, with Resend for the inquiry emails.*

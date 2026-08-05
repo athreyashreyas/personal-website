@@ -1,0 +1,185 @@
+---
+// LLM Inference Benchmark, the headline chart: mean time-to-first-token on each
+// platform, grouped by concurrency. Numbers are lifted straight from
+// report/REPORT.md (run ba442d8d); where a group spans two scenarios the value
+// is the mean of both, matching how the report quotes them in prose.
+//
+// Hand-built rather than an exported PNG so it stays crisp at any zoom and the
+// type matches the page. Interior is a fixed light surface (StillFrame's browser
+// variant), which is the surface the series palette was validated against.
+import StillFrame from './StillFrame.astro';
+
+const SS = '#0A9877'; // Simplismart
+const FW = '#BE6F14'; // Fireworks AI
+const MAX = 1250; // ms. Axis top, just above the largest bar
+// Bars use 78% of the row width so the direct label always has room to sit
+// beside the longest one rather than being clipped at the frame edge.
+const SCALE = 78;
+
+const groups = [
+  { load: '1 request in flight', note: 'E01 / E02 vs E06 / E07', ss: 145, fw: 1024 },
+  { load: '5 in flight', note: 'E03 / E04 vs E08 / E09', ss: 457, fw: 1197 },
+  { load: '10 in flight', note: 'E05 vs E10', ss: 651, fw: 1124 },
+];
+
+const pct = (v: number) => `${(v / MAX) * SCALE}%`;
+const ms = (v: number) => `${v.toLocaleString('en-US')} ms`;
+---
+
+<StillFrame variant="browser" url="report/REPORT.md" label="Time to first token, lower is better">
+  <div class="ttft">
+    <header class="ttft-head">
+      <p class="ttft-k">Mean time to first token</p>
+      <h4 class="ttft-t">The gap sits entirely before the first token</h4>
+      <ul class="ttft-legend">
+        <li><span class="sw" style={`background:${SS}`}></span>Simplismart</li>
+        <li><span class="sw" style={`background:${FW}`}></span>Fireworks AI</li>
+      </ul>
+    </header>
+
+    <div class="ttft-plot">
+      {
+        groups.map((g) => (
+          <div class="ttft-group">
+            <p class="ttft-load">
+              {g.load}
+              <span class="ttft-note">{g.note}</span>
+            </p>
+            <div class="ttft-bar">
+              <span
+                class="ttft-fill"
+                style={`width:${pct(g.ss)};background:${SS}`}
+                title={`Simplismart: ${ms(g.ss)}`}
+              />
+              <span class="ttft-val">{ms(g.ss)}</span>
+            </div>
+            <div class="ttft-bar">
+              <span
+                class="ttft-fill"
+                style={`width:${pct(g.fw)};background:${FW}`}
+                title={`Fireworks AI: ${ms(g.fw)}`}
+              />
+              <span class="ttft-val">{ms(g.fw)}</span>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="ttft-foot">
+      Gemma 3 4B Instruct · 1&#215; dedicated H100 on each platform · 130 requests, 100% success
+    </p>
+  </div>
+</StillFrame>
+
+<style>
+  .ttft {
+    background: #fcfcfb;
+    color: #2b2420;
+    padding: 20px 22px 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .ttft-head {
+    margin-bottom: 20px;
+  }
+  .ttft-k {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #857d6f;
+  }
+  /* Explicit colour: the page's global heading rule paints h1–h4 in the site
+     accent, which is tuned for the parchment background and washes out against
+     this figure's fixed light surface. */
+  .ttft-t {
+    margin: 3px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.25;
+    color: #2b2420;
+  }
+
+  .ttft-legend {
+    display: flex;
+    gap: 1rem;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 11.5px;
+    color: #6b6558;
+  }
+  .ttft-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sw {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  .ttft-group + .ttft-group {
+    margin-top: 16px;
+  }
+  .ttft-load {
+    margin: 0 0 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #2b2420;
+  }
+  .ttft-note {
+    margin-left: 7px;
+    font-weight: 400;
+    color: #a09889;
+  }
+
+  /* Bar row: the track is the full axis, the fill is the value. A 2px gap
+     between the two platform bars keeps the fills from reading as one shape. */
+  .ttft-bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .ttft-bar + .ttft-bar {
+    margin-top: 2px;
+  }
+  .ttft-fill {
+    display: block;
+    height: 11px;
+    /* Rounded data-end only. The bar stays anchored flat to the baseline. */
+    border-radius: 0 4px 4px 0;
+    flex: none;
+  }
+  .ttft-val {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: #6b6558;
+    white-space: nowrap;
+  }
+
+  .ttft-foot {
+    margin: 18px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid #eae5d9;
+    font-size: 10.5px;
+    color: #a09889;
+  }
+
+  @media (max-width: 520px) {
+    .ttft {
+      padding: 16px 15px 13px;
+    }
+    .ttft-t {
+      font-size: 15px;
+    }
+    .ttft-val {
+      font-size: 10px;
+    }
+  }
+</style>

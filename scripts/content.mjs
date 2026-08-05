@@ -15,7 +15,7 @@
  * Nothing here is destructive without showing you exactly what it will do
  * and asking first.
  */
-import { execSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 
@@ -31,37 +31,80 @@ const c = {
   cyan: (s) => `\x1b[36m${s}\x1b[0m`,
 };
 
-function git(args, { capture = true } = {}) {
-  if (capture) {
-    return execSync(`git ${args}`, { encoding: 'utf8' }).trim();
+/**
+ * Runs git and returns its stdout, throwing on a non-zero exit.
+ *
+ * argv is always an array — never an interpolated command string — so paths and
+ * user-supplied refs can't be re-split on spaces or interpreted by a shell.
+ *
+ * `trim: false` for output whose leading whitespace is significant: a porcelain
+ * status line starts with the two-character code, and an unstaged edit's code
+ * is " M", so trimming would shift every field of the first entry by one.
+ */
+function git(argv, { trim = true } = {}) {
+  const res = spawnSync('git', argv, { encoding: 'utf8' });
+  if (res.error) throw res.error;
+  if (res.status !== 0) {
+    throw new Error(res.stderr?.trim() || `git ${argv.join(' ')} failed`);
   }
-  return spawnSync('git', args, { stdio: 'inherit' });
+  return trim ? res.stdout.trim() : res.stdout;
+}
+
+/** Runs git attached to this terminal (so it can print/prompt). Returns the exit code. */
+function gitInteractive(argv) {
+  const res = spawnSync('git', argv, { stdio: 'inherit' });
+  if (res.error) throw res.error;
+  return res.status ?? 1;
 }
 
 function ensureRepo() {
   try {
-    git('rev-parse --is-inside-work-tree');
+    git(['rev-parse', '--is-inside-work-tree']);
   } catch {
     console.error(c.red('Not a git repository. Run these from the project root.'));
     process.exit(1);
   }
 }
 
-/** Working-tree changes (tracked + untracked) within the content paths. */
+/**
+ * Working-tree changes (tracked + untracked) within the content paths.
+ *
+ * `-z` because git otherwise quotes and escapes paths containing spaces or
+ * non-ASCII — both of which are ordinary in image filenames here.
+ */
 function changes() {
-  const out = git(`status --porcelain -- ${PATHS.join(' ')}`);
+  const out = git(['status', '--porcelain', '-z', '--', ...PATHS], { trim: false });
   if (!out) return [];
-  return out
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => ({ code: line.slice(0, 2), file: line.slice(3) }));
+  const entries = out.split('\0');
+  const list = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (!entries[i]) continue;
+    const code = entries[i].slice(0, 2);
+    const file = entries[i].slice(3);
+    // A rename/copy is followed by its source path as a separate field.
+    if (code[0] === 'R' || code[0] === 'C') i++;
+    list.push({ code, file });
+  }
+  return list;
+}
+
+/** The content paths that actually have files at `ref` — git rejects pathspecs matching nothing. */
+function pathsIn(ref) {
+  return PATHS.filter((p) => {
+    try {
+      return git(['ls-tree', '-r', '--name-only', ref, '--', p]).length > 0;
+    } catch {
+      return false;
+    }
+  });
 }
 
 function describeCode(code) {
   if (code.includes('?')) return c.green('new');
-  if (code.includes('D')) return c.red('deleted');
-  if (code.includes('M')) return c.yellow('edited');
   if (code.includes('R')) return c.cyan('renamed');
+  if (code.includes('D')) return c.red('deleted');
+  if (code.includes('A')) return c.green('added');
+  if (code.includes('M')) return c.yellow('edited');
   return code.trim();
 }
 
@@ -109,21 +152,23 @@ async function cmdPublish() {
     return;
   }
 
-  git(`add -- ${PATHS.join(' ')}`);
-  git(`commit -m ${JSON.stringify(message)}`, { capture: false });
+  git(['add', '--', ...PATHS]);
+  if (gitInteractive(['commit', '-m', message]) !== 0) {
+    console.log(c.red('\nCommit failed — nothing was published.'));
+    return;
+  }
   console.log(c.green('\n✓ Saved a restore point.'));
 
   // Push if there's an upstream/remote; otherwise just keep the local commit.
   let hasRemote = false;
   try {
-    hasRemote = git('remote').length > 0;
+    hasRemote = git(['remote']).length > 0;
   } catch {
     hasRemote = false;
   }
   if (hasRemote) {
     console.log(c.dim('Pushing to trigger a deploy…'));
-    const res = git(['push'], { capture: false });
-    if (res.status === 0) {
+    if (gitInteractive(['push']) === 0) {
       console.log(c.green('✓ Pushed. Netlify will redeploy shortly.'));
     } else {
       console.log(
@@ -143,7 +188,7 @@ async function cmdUndo() {
     return;
   }
   // Undo means "go back to the last published version" — so one must exist.
-  const hasBaseline = git(`log -1 --pretty=format:%h -- ${PATHS.join(' ')}`).length > 0;
+  const hasBaseline = git(['log', '-1', '--pretty=format:%h', '--', ...PATHS]).length > 0;
   if (!hasBaseline) {
     console.log(c.yellow('There is no published version yet to restore to.'));
     console.log(
@@ -161,15 +206,26 @@ async function cmdUndo() {
     return;
   }
   // Restore tracked files to HEAD, and remove newly-added (untracked) ones.
-  git(`restore --source=HEAD --staged --worktree -- ${PATHS.join(' ')}`);
-  git(`clean -fd -- ${PATHS.join(' ')}`);
+  // Only pass paths that HEAD actually has files under — git errors out on a
+  // pathspec that matches nothing, which would abort the whole undo (e.g. when
+  // no images have ever been committed).
+  const restorable = pathsIn('HEAD');
+  if (restorable.length > 0) {
+    git(['restore', '--source=HEAD', '--staged', '--worktree', '--', ...restorable]);
+  }
+  git(['clean', '-fd', '--', ...PATHS]);
   console.log(c.green('\n✓ Restored to the last published version.'));
 }
 
 function cmdHistory() {
-  const raw = git(
-    `log --pretty=format:%h%x09%cr%x09%s -n 20 -- ${PATHS.join(' ')}`,
-  );
+  const raw = git([
+    'log',
+    '--pretty=format:%h%x09%cr%x09%s',
+    '-n',
+    '20',
+    '--',
+    ...PATHS,
+  ]);
   if (!raw) {
     console.log(c.dim('No publishes yet.'));
     return;
@@ -201,21 +257,38 @@ async function cmdRestore() {
   // A small integer means "N publishes back"; otherwise treat as a commit hash.
   let commit = ref;
   if (/^\d+$/.test(ref)) {
-    const raw = git(`log --pretty=format:%h -n 30 -- ${PATHS.join(' ')}`).split('\n');
+    const raw = git(['log', '--pretty=format:%h', '-n', '30', '--', ...PATHS]).split('\n');
     const idx = Number(ref);
     if (idx >= raw.length) {
       console.log(c.red(`There aren't that many publishes. See ${c.b('npm run content:history')}.`));
       return;
     }
     commit = raw[idx];
+  } else if (!/^[0-9a-fA-F]{4,40}$/.test(ref)) {
+    console.log(c.red(`"${ref}" doesn't look like a version number or commit hash.`));
+    console.log(c.dim(`See ${c.b('npm run content:history')} for the ones you can restore.`));
+    return;
   }
-  const subject = git(`log -1 --pretty=format:%s ${commit}`);
+
+  let subject;
+  try {
+    subject = git(['log', '-1', '--pretty=format:%s', commit]);
+  } catch {
+    console.log(c.red(`No publish found for ${c.b(commit)}.`));
+    console.log(c.dim(`See ${c.b('npm run content:history')} for the ones you can restore.`));
+    return;
+  }
   console.log(`This will bring your content back to:\n  ${c.cyan(commit)}  ${subject}\n`);
   if (!(await confirm('Restore this version into your working files?'))) {
     console.log(c.dim('Cancelled.'));
     return;
   }
-  git(`checkout ${commit} -- ${PATHS.join(' ')}`);
+  const restorable = pathsIn(commit);
+  if (restorable.length === 0) {
+    console.log(c.yellow('That version has no content files to restore.'));
+    return;
+  }
+  git(['checkout', commit, '--', ...restorable]);
   console.log(c.green('\n✓ Restored those files into your working copy.'));
   console.log(
     c.dim(`Review with ${c.b('npm run dev')}, then make it live with ${c.b('npm run content:publish')}.`),
@@ -246,4 +319,12 @@ if (!run) {
   process.exit(0);
 }
 
-await run();
+// Nothing here should ever greet you with a stack trace — git's own message is
+// the useful part, and everything these commands do is recoverable.
+try {
+  await run();
+} catch (err) {
+  console.error(c.red(`\nSomething went wrong: ${err.message}`));
+  console.error(c.dim('Your files were not changed by this command.'));
+  process.exit(1);
+}

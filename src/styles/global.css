@@ -1,4 +1,10 @@
-/* Self-hosted fonts (via @fontsource, no render-blocking Google link) */
+/* Self-hosted fonts (via @fontsource, no render-blocking Google link).
+   These full-family files are the ones to import, not @fontsource's per-subset
+   files: only these carry `unicode-range`, which is what keeps the browser
+   downloading just the subset a page's text actually needs. The per-subset
+   files declare the same family/weight with no range, so the last one imported
+   would win outright and any character outside it would drop to the fallback
+   serif instead of the next subset. */
 /* Newsreader — editorial serif, used for headings AND body */
 @import '@fontsource/newsreader/400.css';
 @import '@fontsource/newsreader/500.css';
@@ -131,17 +137,17 @@
   box-sizing: border-box;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  /* No horizontal scroll anywhere — keeps content from drifting sideways on
-     mobile. `clip` (not `hidden`) prevents overflow WITHOUT turning html/body
-     into scroll containers, which would break the sticky header below. */
+/* No horizontal scroll anywhere — keeps content from drifting sideways on
+   mobile. `clip` (not `hidden`) prevents overflow WITHOUT turning html/body
+   into scroll containers, which would break the sticky header below. */
+html,
+body {
   overflow-x: clip;
 }
 
-body {
-  overflow-x: clip;
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {

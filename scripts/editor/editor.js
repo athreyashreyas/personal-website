@@ -58,6 +58,22 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+// Cmd/Ctrl-S saves whatever is on screen. Bound once, dispatching through this
+// slot: binding it inside the edit view leaked a listener per navigation, and
+// every stale closure still held its own entry id and detached textarea — so
+// one Cmd-S wrote back over each entry visited earlier in the session, undoing
+// anything changed there since.
+let saveCurrentView = null;
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    // A dialog is up: saving behind it would leave the reader looking at a
+    // modal over an entry that just changed under it.
+    if (document.querySelector('.modal-backdrop')) return;
+    if (saveCurrentView) saveCurrentView();
+  }
+});
+
 // ---------------------------------------------------------------- router
 
 function currentRoute() {
@@ -66,8 +82,24 @@ function currentRoute() {
   return { key: key || null, id: id ? decodeURIComponent(id) : null };
 }
 
+// The hash the view on screen was rendered from, and a latch so the revert
+// below isn't itself treated as a navigation.
+let renderedHash = location.hash;
+let revertingHash = false;
+
+const LEAVE_PROMPT = 'You have unsaved changes. Leave without saving?';
+
 window.addEventListener('hashchange', () => {
-  if (dirty && !confirm('You have unsaved changes. Leave without saving?')) {
+  if (revertingHash) {
+    revertingHash = false;
+    return;
+  }
+  if (dirty && !confirm(LEAVE_PROMPT)) {
+    // Put the address bar back on the entry that's still on screen. Without
+    // this the URL and the view disagree, and clicking that same link again
+    // fires no hashchange at all — leaving no way to reach it.
+    revertingHash = true;
+    location.hash = renderedHash;
     return;
   }
   markDirty(false);
@@ -75,15 +107,16 @@ window.addEventListener('hashchange', () => {
 });
 
 function navigate(hash) {
-  if (dirty && !confirm('You have unsaved changes. Leave without saving?')) return;
+  if (dirty && !confirm(LEAVE_PROMPT)) return;
   markDirty(false);
-  location.hash = hash;
+  if (hash === location.hash) render();
+  else location.hash = hash;
 }
 
 // ---------------------------------------------------------------- sidebar
 
 function renderSidebar() {
-  const { key } = currentRoute();
+  const { key, id } = currentRoute();
   $sidebar.innerHTML = '';
 
   const pagesSection = document.createElement('div');
@@ -96,7 +129,7 @@ function renderSidebar() {
     const a = document.createElement('a');
     a.href = `#/pages/${encodeURIComponent(entry.id)}`;
     a.textContent = entry.label;
-    if (key === 'pages' && currentRoute().id === entry.id) a.classList.add('active');
+    if (key === 'pages' && id === entry.id) a.classList.add('active');
     pagesSection.appendChild(a);
   }
   $sidebar.appendChild(pagesSection);
@@ -120,7 +153,8 @@ function renderSidebar() {
 
 // ---------------------------------------------------------------- helpers
 
-function fieldValue(field) {
+/** The value a field starts at in a brand-new entry. */
+function defaultFieldValue(field) {
   if (field.type === 'checkbox') return field.default === true;
   if (field.type === 'date' && field.default === 'today') return new Date().toISOString().slice(0, 10);
   return '';
@@ -224,6 +258,9 @@ function renderField(field, value, onChange) {
     input = el('input', { type: 'text' });
     input.value = value || '';
   }
+  // Lets callers find a specific field's control without relying on its
+  // position or input type (see the slug preview below).
+  input.dataset.field = field.name;
   input.addEventListener('input', () => {
     markDirty(true);
     onChange(field.type === 'checkbox' ? input.checked : input.value);
@@ -318,7 +355,7 @@ async function renderEditView(key, id) {
   let entry;
   if (isNew) {
     entry = { id: null, fields: {}, body: '' };
-    for (const f of def.fields) entry.fields[f.name] = fieldValue(f);
+    for (const f of def.fields) entry.fields[f.name] = defaultFieldValue(f);
   } else {
     entry = await api(`/api/entry/${key}/${encodeURIComponent(id)}`);
   }
@@ -339,7 +376,16 @@ async function renderEditView(key, id) {
     const delBtn = el('button', { class: 'btn btn-danger' }, ['Delete']);
     delBtn.addEventListener('click', async () => {
       if (!confirm(`Delete “${title}”? This removes the file (recoverable via npm run content:undo until you publish).`)) return;
-      await api(`/api/entry/${key}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      try {
+        await api(`/api/entry/${key}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      } catch (err) {
+        setStatus(err.message, 'err');
+        return;
+      }
+      // The entry is gone, so any unsaved edits to it are moot — clearing this
+      // first stops navigate() from asking to discard changes to a deleted file.
+      markDirty(false);
+      setStatus('Deleted ' + id, 'ok');
       navigate(`#/${key}`);
     });
     header.appendChild(delBtn);
@@ -361,7 +407,7 @@ async function renderEditView(key, id) {
         preview.append('Will be saved as ', el('code', {}, [`${slugPreview(fieldValues.title)}.mdx`]));
       };
       update();
-      grid.querySelector('input[type="text"]')?.addEventListener('input', update);
+      grid.querySelector('[data-field="title"]')?.addEventListener('input', update);
       $main.appendChild(preview);
     }
   }
@@ -423,12 +469,7 @@ async function renderEditView(key, id) {
   }
 
   saveBtn.addEventListener('click', doSave);
-  document.addEventListener('keydown', function shortcut(e) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-      e.preventDefault();
-      doSave();
-    }
-  });
+  saveCurrentView = doSave;
 }
 
 // ---------------------------------------------------------------- image modal
@@ -449,14 +490,14 @@ async function openImageModal(ctx, textarea) {
   modal.appendChild(body);
   modal.appendChild(el('div', { class: 'modal-close' }, [(() => {
     const b = el('button', { class: 'btn' }, ['Cancel']);
-    b.addEventListener('click', () => backdrop.remove());
+    b.addEventListener('click', () => close());
     return b;
   })()]));
 
   function insertAndClose(url) {
     const alt = prompt('Alt text (for accessibility):', '') || '';
     insertAtSelection(textarea, `![${alt}](${url})`);
-    backdrop.remove();
+    close();
   }
 
   function showUpload() {
@@ -512,7 +553,14 @@ async function openImageModal(ctx, textarea) {
     existingTab.classList.add('active');
     uploadTab.classList.remove('active');
     body.innerHTML = 'Loading…';
-    const images = await api(`/api/images/${ctx.key}/${encodeURIComponent(ctx.id)}`);
+    let images;
+    try {
+      images = await api(`/api/images/${ctx.key}/${encodeURIComponent(ctx.id)}`);
+    } catch (err) {
+      body.innerHTML = '';
+      body.appendChild(el('p', { class: 'empty' }, ["Couldn't load images: " + err.message]));
+      return;
+    }
     body.innerHTML = '';
     if (images.length === 0) {
       body.appendChild(el('p', { class: 'empty' }, ['No images uploaded here yet.']));
@@ -533,8 +581,17 @@ async function openImageModal(ctx, textarea) {
   existingTab.addEventListener('click', showExisting);
   showUpload();
 
+  function close() {
+    document.removeEventListener('keydown', onKeydown);
+    backdrop.remove();
+  }
+  function onKeydown(e) {
+    if (e.key === 'Escape') close();
+  }
+  document.addEventListener('keydown', onKeydown);
+
   backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) backdrop.remove();
+    if (e.target === backdrop) close();
   });
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
@@ -544,6 +601,10 @@ async function openImageModal(ctx, textarea) {
 
 async function render() {
   const { key, id } = currentRoute();
+  renderedHash = location.hash;
+  // Dropped here and re-set by the edit view, so Cmd-S in a list view can't
+  // reach the last-edited entry.
+  saveCurrentView = null;
   renderSidebar();
   if (!key || !SCHEMA[key]) {
     $main.innerHTML = '';

@@ -1,0 +1,104 @@
+---
+title: LLM Inference Benchmark
+description: >-
+  A head-to-head benchmark of two LLM inference platforms, same model and same
+  GPU, plus a log of everything that broke on the way there.
+status: complete
+date: 2026-06-08
+links:
+  repo: https://github.com/athreyashreyas/llm-inference-benchmark
+---
+I wanted to know what actually separates one LLM inference platform from another
+once you get past the pricing page. Everybody quotes tokens per second. Almost
+nobody quotes the number you feel when you're sitting in front of a chat box
+waiting for something to appear.
+
+So I picked two platforms, [Simplismart](https://simplismart.ai) and
+[Fireworks AI](https://fireworks.ai), put the same model on the same class of GPU
+on both, pointed the same client code at them, and ran ten scenarios in one
+sitting. Gemma 3 4B Instruct, a dedicated H100 each, 130 requests, everything
+torn down inside the hour.
+
+<InferenceTtftStill />
+
+## What the numbers said
+
+The headline is that 7× gap in time to first token, and the interesting part is
+where it *isn't*. Time per output token, meaning the speed of the stream once it
+starts, came out at 4.2 to 5.0 ms on one platform and 4.6 to 6.2 ms on the other.
+Basically identical, which makes sense: same weights, same silicon. Steady-state
+generation is a property of the GPU.
+
+Everything separating the two lives in the moment before the first token. Request
+routing, queueing, scheduling, whatever each platform's serving layer does before
+it hands the prompt to the model. One of them had a near-constant \~1,000 ms of it.
+That's the number that decides whether your product feels alive, and it's the one
+you can't read off anyone's pricing page.
+
+The second finding was that I'd have got the ranking wrong if I'd stopped at one
+concurrency level.
+
+<InferenceThroughputStill />
+
+Simplismart wins comfortably at one and five requests in flight. At ten, with
+longer generations, Fireworks overtakes it, batching more efficiently once its
+fixed overhead is amortised across more simultaneous requests. Any single
+"tokens/sec" comparison would have picked a winner and been wrong for half the
+workloads people actually run.
+
+Third: on dedicated endpoints, per-token pricing barely matters. Fireworks costs
+twice as much per token and my total bill came out within 2% of the other
+platform's, because GPU-hours dominate everything at this scale. The cost lever
+isn't the rate card, it's whether you remember to run teardown.
+
+## The half I didn't plan for
+
+The rule I set myself was that everything had to be attempted from code first, with
+no clicking through a dashboard unless the API had already refused. I handed the
+whole build to Claude Code and gave it the same rule.
+
+That turned out to be the actual experiment. An agent can only read documentation
+and call endpoints, so it finds every place where a platform quietly assumes a
+human with a browser. Thirteen of those went into the log, and the pattern across
+them is more interesting than any one entry:
+
+* A model listed on the public pricing page that isn't in the marketplace at all,
+  so the config you write from the docs fails on first contact.
+* A GPU listed as valid in the SDK enum, with zero quota on the account. The only
+  way to discover that is to attempt the deploy and read the 400.
+* A deployment API that returned `500` and *created the deployment anyway*. Live,
+  healthy, and with no ID anywhere in the error response. Recovering it meant
+  knowing to call `list_deployments()`, which nothing tells you.
+* An inference endpoint that looks like a drop-in OpenAI URL but silently needs a
+  non-standard `id` header on every call. I found it buried in a `curl` string
+  inside a deployment-detail payload.
+* Dedicated GPU deployment gated behind having a card on file, separately from the
+  free credit balance, and with no error saying so. It just fails during
+  provisioning like a transient platform issue. That one cost me the longest,
+  because "we have credits, why is this failing" isn't a question an agent knows
+  to ask. I had to go look at a billing page.
+
+None of these are bugs exactly. They're places where the documented surface and
+the real surface have drifted apart, and you only find them by walking into them.
+Every entry in the log has what I hit, what it cost, and what I'd change if I
+owned the product.
+
+## What I'd actually tell someone
+
+If you're building something interactive, anything where a person is sitting there
+waiting, shop on time to first token and cold start, and test at *your*
+concurrency rather than at one request. If you're running batch work, throughput at
+high concurrency is your number and the rankings may well invert. And on dedicated
+endpoints, watch GPU-hours rather than token prices, because that's where the money
+actually goes.
+
+What I came away with, though, is a mental model for where latency comes from in a
+served model: which parts of it a vendor can change, and which parts are just
+physics. That was the point of doing it.
+
+*Python, asyncio, the OpenAI streaming client, pandas and matplotlib for the
+report, the Simplismart SDK and the Fireworks REST API for deployment. Built with
+Claude Code, with a
+[full write-up](https://github.com/athreyashreyas/llm-inference-benchmark/blob/main/report/REPORT.md),
+a [friction log](https://github.com/athreyashreyas/llm-inference-benchmark/blob/main/AGENTIC_LOG.md),
+and a second independent run to check the first one wasn't a fluke.*

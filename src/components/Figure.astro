@@ -53,11 +53,17 @@ const hasCaptionSlot = Astro.slots.has('caption');
 </figure>
 
 {/* Without JS the reveal script below never runs, so the image would stay at
-    opacity: 0 forever — force it visible in that case. */}
+    opacity: 0 forever — force it visible in that case.
+
+    !important is doing real work here, not papering over anything: Astro
+    scopes the rule below to `.figure[data-astro-cid-…] img[data-astro-cid-…]`,
+    which out-specifies the plain `.figure img` this can use, so without it the
+    fallback never applies and a no-JS reader sees nothing at all. Nothing else
+    competes for opacity here, and this only ever renders with JS off. */}
 <noscript>
   <style>
     .figure img {
-      opacity: 1;
+      opacity: 1 !important;
     }
   </style>
 </noscript>
@@ -148,8 +154,14 @@ const hasCaptionSlot = Astro.slots.has('caption');
     }
     function wireFigureReveal() {
       document.querySelectorAll('.figure img:not(.is-loaded)').forEach(function (img) {
-        if (img.complete && img.naturalWidth > 0) reveal(img);
-        else img.addEventListener('load', function () { reveal(img); }, { once: true });
+        if (img.complete && img.naturalWidth > 0) {
+          reveal(img);
+          return;
+        }
+        img.addEventListener('load', function () { reveal(img); }, { once: true });
+        // A broken image would otherwise stay at opacity 0 forever, hiding the
+        // alt text that's meant to stand in for it.
+        img.addEventListener('error', function () { reveal(img); }, { once: true });
       });
     }
     document.addEventListener('astro:page-load', wireFigureReveal);

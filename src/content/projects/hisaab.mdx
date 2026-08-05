@@ -1,51 +1,57 @@
 ---
 title: Hisaab
-description: An end-to-end encrypted expense tracker whose whole job is one honest "safe to spend" number.
+description: >-
+  An end-to-end encrypted expense tracker whose whole job is one honest "safe to
+  spend" number.
 status: active
-date: 2025-03-20
+date: 2026-07-30
 links:
-  {
-    repo: 'https://github.com/athreyashreyas/hisaab',
-    live: 'https://hisaab-rakho.vercel.app/',
-  }
+  repo: https://github.com/athreyashreyas/hisaab
+  live: https://hisaab-rakho.vercel.app/
 ---
+## What is it?&#x20;
 
-Hisaab (Hindi and Urdu for "the reckoning") answers one question the moment you
-open it: how much can I actually spend right now? That's the big teal number, and
-it's honest. This month's rent, bills and goal savings are already taken out, so
-it isn't your bank balance pretending to be spending money.
+Hisaab (Hindi and Urdu for "keeping an account") is a delightful money tracking app that answers one question the moment you open it: how much can I actually spend right now?&#x20;
+
+It helps you plan every part of your financial life well and it keeps your bills and obligations in mind so that you always have a full picture. This month's rent, bills and goal savings are already taken out, so you always know where you stand and what can you spend after you portion for your monthly obligations like the financially savvy person you are.
 
 <HisaabStill />
 
 Everything you need is one glance down the home screen. Under the number sits a
 per-day allowance for the days left in the month, a bar for how far through the
 month you are, and a small donut of where the money actually went, top categories
-first. Adding an entry is the other half of the loop: tap the **+**, type an
-amount, pick a category, done. Two taps for the common case, because if logging
-isn't fast you stop doing it and the number goes stale. It shares a design
-language with Attend and Harmony: serif display and sans on warm parchment, with
-money set in the serif face so the whole thing reads like a hand-kept ledger.
+first.&#x20;
+
+Adding an entry is the other half of the loop: tap the **+**, type an amount, pick a category, enter the amount and you're done. It shares a design language with my other projects (Attend and Harmony: serif display and sans on warm parchment), with money set in the serif face so the whole thing reads like a hand-kept ledger.
+
+## Bespoke Design
+
+Little things make Hisaab stand out. I've built it for everyday Indians who have no solution that feels "native" to their situations, language and culture:&#x20;
+
+* The commas in Hisaab are Indian lakh system based.
+* Amounts entered reflect the colour of the largest denomination note that will be used to pay it (eg. ₹2012 will use the 2000 rupee note's magenta pink, ₹23 will use the 20 rupee notes lime green etc.)
+* Themes are also based on the colours of the Indian Rupee notes.&#x20;
+* Entering amounts feelings like entering money in a cash register, with little touches like needing to add two zeros to stop entering paise in the log.&#x20;
+* Hisaab has the ability to add common investment options in India like SIP, MFs etc.&#x20;
 
 ## Truly end to end
 
-This is the part I care about most. Your ledger is encrypted with a key derived
-from a passphrase only you know. The passphrase runs through Argon2id to a
-key-encryption key, which wraps a data-encryption key, which AES-GCM-encrypts
-every record before it leaves the device. The cloud holds ciphertext and
-timestamps, nothing readable. Changing your passphrase re-wraps the DEK without
-re-encrypting your data, and a one-time Recovery Key, plus an offline encrypted
-export, covers a forgotten passphrase.
+I understand that your financials are your business and your business alone. Your ledger is encrypted with a key derived from a passphrase only you know. The passphrase runs through Argon2id (a top grade password hashing function) to a key-encryption process, which wraps a data-encryption key that is then AES-GCM-encrypted (this happens for every record) before it leaves the device. The cloud holds ciphertext and timestamps, nothing related to your actual monetary data. Changing your passphrase refreshes the encryption process without any trouble to you.
 
-## Manual, and proud of it
+## Manual for now
 
-The hardest call was refusing to auto-capture bank SMS and UPI transactions. It's
-the feature people ask for first, and I archived it on purpose. A PWA can't read
-SMS on any OS, and bank-linked data in India means going through the regulated
-Account Aggregator route, which is real work and real compliance and the wrong
-thing to gate v1 on. So v1 commits fully to making *manual* entry fast and
-pleasant instead of shipping a half-working magic trick. Email-alert auto-capture
-is the planned next step, once it can be done properly.
+The hardest call was refusing to auto-capture bank SMS and UPI transactions. It was the main motivation behind building this app because there is too much friction otherwise to add expenses. A progressive web app (PWA) however can't read SMS on any OS, and bank-linked data in India means going through the regulated Account Aggregator route, which is real work and real compliance. It is also the wrong thing to gate v1 on. So v1 commits fully to making *manual* entry fast and pleasant instead of waiting to ship. Email-alert auto-capture is the planned next step once it can be done properly.
 
-Stack: Vite · React · TypeScript · Tailwind · Dexie (IndexedDB) · Supabase for
-the encrypted backup · TanStack Query · Zustand · recharts · hash-wasm (Argon2id)
-· WebCrypto (AES-GCM).
+*Built with: Vite · React · TypeScript · Tailwind · Dexie (IndexedDB) · Supabase for the encrypted backup · TanStack Query · Zustand · recharts · hash-wasm (Argon2id) · WebCrypto (AES-GCM).*
+
+## Give it a go!
+
+On iPhone, open the link in Safari, tap the Share icon, then **Add to Home
+Screen**.&#x20;
+
+On Android, open it in Chrome, tap the **⋮** menu, then **Install
+app** (or **Add to Home Screen**, depending on the browser).&#x20;
+
+On a computer there's nothing to set up: it just runs in the browser.
+
+As always, feedback and thoughts on the feedback will be greatly appreciated. Please write to me at [*athreya.shreyas@gmail.com*](mailto:athreya.shreyas@gmail.com).

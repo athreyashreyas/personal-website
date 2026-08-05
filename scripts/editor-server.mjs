@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * A tiny, local-only content editor — a fast alternative to `npm run dev:cms`
- * for the common case of just editing text/frontmatter/images.
+ * A tiny, local-only content editor — a fast alternative to the /keystatic
+ * admin for the common case of just editing text/frontmatter/images.
  *
  * Plain node:http, one dependency already in node_modules (js-yaml). No Vite,
  * no React, no @keystar/ui — so it starts instantly instead of paying the
@@ -106,17 +106,21 @@ function isoDate(value) {
   return value ?? '';
 }
 
-/** Splits a `---\nyaml\n---\nbody` file into { data, body }. */
+/** Splits a `---\nyaml\n---\nbody` file into { data, yamlText, body }. */
 function parseFrontmatter(raw) {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-  if (!m) return { data: {}, body: raw };
+  if (!m) return { data: {}, yamlText: '', body: raw };
   const data = yaml.load(m[1]) || {};
-  return { data, body: m[2].replace(/^\n/, '') };
+  return { data, yamlText: m[1], body: m[2].replace(/^\n/, '') };
 }
 
-function serializeEntry(data, body) {
-  const yamlText = yaml.dump(data, { lineWidth: -1 });
-  return `---\n${yamlText}---\n\n${body.trim()}\n`;
+/**
+ * `yamlText`, when given, is written back verbatim instead of re-dumping the
+ * data — see writeEntry for why that matters.
+ */
+function serializeEntry(data, body, yamlText) {
+  const front = yamlText ?? yaml.dump(data, { lineWidth: -1 });
+  return `---\n${front.replace(/\n?$/, '\n')}---\n\n${body.trim()}\n`;
 }
 
 /** Builds the frontmatter object for a collection from posted field values. */
@@ -195,8 +199,13 @@ async function pathExists(p) {
   }
 }
 
+const IMAGE_EXTENSIONS = ['.webp', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.avif'];
+
 function sanitizeFilename(name) {
-  const ext = path.extname(name).toLowerCase().replace(/[^a-z0-9.]/g, '');
+  const rawExt = path.extname(name).toLowerCase().replace(/[^a-z0-9.]/g, '');
+  // Whatever the picker hands over, only ever land an image extension in
+  // public/images — that directory is served verbatim by the site.
+  const ext = IMAGE_EXTENSIONS.includes(rawExt) ? rawExt : '.png';
   const base = path
     .basename(name, path.extname(name))
     .toLowerCase()
@@ -205,7 +214,7 @@ function sanitizeFilename(name) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60) || 'image';
-  return { base, ext: ext || '.png' };
+  return { base, ext };
 }
 
 async function uniqueFilename(dir, base, ext) {
@@ -298,8 +307,35 @@ async function writeEntry(key, id, fields, body) {
   const def = collectionOrThrow(key);
   const filePath = entryFilePath(key, id);
   const data = def.kind === 'singleton' ? {} : buildFrontmatter(key, fields);
+
+  // Keep the file's existing frontmatter text when none of its values actually
+  // changed. Re-dumping produces valid but differently formatted YAML than
+  // Keystatic writes — quoting dates, refolding long descriptions, reindenting
+  // nested maps — so without this, fixing one sentence in the body rewrites the
+  // whole header too. That shows up as a misleading diff in
+  // `npm run content:status`, and flips back and forth as you alternate between
+  // this editor and /keystatic.
+  let yamlText;
+  const existing = await readFile(filePath, 'utf8').catch(() => null);
+  if (existing !== null) {
+    const previous = parseFrontmatter(existing);
+    if (sameFields(key, previous.data, data)) yamlText = previous.yamlText;
+  }
+
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, serializeEntry(data, body), 'utf8');
+  await writeFile(filePath, serializeEntry(data, body, yamlText), 'utf8');
+}
+
+/**
+ * Whether two frontmatter objects carry the same values for this collection's
+ * fields. Compared through readFrontmatter so both sides are normalized the
+ * same way first — YAML parses a bare `2025-05-01` into a Date while the posted
+ * value is the string '2025-05-01', and those are the same date.
+ */
+function sameFields(key, a, b) {
+  return (
+    JSON.stringify(readFrontmatter(key, a)) === JSON.stringify(readFrontmatter(key, b))
+  );
 }
 
 async function createEntry(key, fields, body) {
@@ -347,7 +383,9 @@ async function listImages(key, id) {
   const abs = path.join(ROOT, dir);
   let files = [];
   try {
-    files = (await readdir(abs)).filter((f) => /\.(webp|png|jpe?g|gif|svg)$/i.test(f));
+    files = (await readdir(abs)).filter((f) =>
+      IMAGE_EXTENSIONS.includes(path.extname(f).toLowerCase()),
+    );
   } catch {
     files = [];
   }
@@ -384,8 +422,38 @@ const MIME = {
   '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
+  '.avif': 'image/avif',
   '.json': 'application/json; charset=utf-8',
 };
+
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
+/**
+ * True only for requests addressed to this server as a local process by a page
+ * it served itself.
+ *
+ * This is a plain HTTP server with no auth that writes files into the repo, so
+ * without this any page open in the browser could POST to localhost:4322 and
+ * rewrite content (a form post or a `text/plain` fetch skips CORS preflight
+ * entirely, and CORS never blocks the request itself — only reading the reply).
+ * The Host check additionally rules out DNS rebinding, where a hostile domain
+ * resolves to 127.0.0.1 but still carries its own name in Host.
+ */
+function isLocalRequest(req) {
+  const host = req.headers.host;
+  if (!host) return false;
+  if (!LOCAL_HOSTNAMES.has(host.replace(/:\d+$/, ''))) return false;
+
+  const origin = req.headers.origin;
+  if (origin && origin !== 'null') {
+    try {
+      if (new URL(origin).host !== host) return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
 
 function send(res, status, body, contentType = 'application/json; charset=utf-8') {
   res.writeHead(status, { 'Content-Type': contentType });
@@ -409,7 +477,7 @@ async function readJSONBody(req, maxBytes = 30 * 1024 * 1024) {
 }
 
 /** Only ever serves files that resolve inside `public/images`. */
-async function serveStaticImage(req, res, urlPath) {
+async function serveStaticImage(res, urlPath) {
   const rel = decodeURIComponent(urlPath.replace(/^\/images\//, ''));
   const abs = path.join(ROOT, 'public', 'images', rel);
   if (!abs.startsWith(path.join(ROOT, 'public', 'images') + path.sep)) {
@@ -429,6 +497,9 @@ async function serveClientAsset(res, name) {
   try {
     const buf = await readFile(abs);
     const ext = path.extname(abs).toLowerCase();
+    // These are edited in place while the server runs; never let the browser
+    // hold on to an older copy.
+    res.setHeader('Cache-Control', 'no-store');
     send(res, 200, buf, MIME[ext] || 'application/octet-stream');
   } catch {
     send(res, 404, 'Not found', 'text/plain');
@@ -451,6 +522,9 @@ function schemaForClient() {
 
 const server = http.createServer(async (req, res) => {
   try {
+    if (!isLocalRequest(req)) {
+      return send(res, 403, 'Forbidden', 'text/plain');
+    }
     const url = new URL(req.url, `http://${req.headers.host}`);
     const p = url.pathname;
 
@@ -458,7 +532,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/') return serveClientAsset(res, 'index.html');
     if (req.method === 'GET' && p === '/editor.js') return serveClientAsset(res, 'editor.js');
     if (req.method === 'GET' && p === '/editor.css') return serveClientAsset(res, 'editor.css');
-    if (req.method === 'GET' && p.startsWith('/images/')) return serveStaticImage(req, res, p);
+    if (req.method === 'GET' && p.startsWith('/images/')) return serveStaticImage(res, p);
 
     // --- api -------------------------------------------------------------
     if (req.method === 'GET' && p === '/api/schema') return sendJSON(res, 200, schemaForClient());

@@ -4,14 +4,30 @@ Astro + MDX content collections, edited through a local **Keystatic** CMS.
 Fully static, no database, no backend. Deployed on Netlify. Built to the spec
 in [`personal-site-spec.md`](./personal-site-spec.md).
 
+Requires Node 20.3+, 22, or 24 (see `.node-version`; Node 21 is not supported
+by Astro).
+
 ## Develop
 
 ```sh
 npm install
-npm run dev      # http://localhost:4321  (site + CMS)
-npm run build    # outputs to dist/  (static; CMS excluded)
-npm run preview  # serve the production build locally
+npm run dev            # http://localhost:4321  (site + CMS at /keystatic)
+npm run dev:site-only  # same, minus Keystatic — fastest cold start
+npm run edit           # http://localhost:4322  the lightweight editor (below)
+npm run build          # outputs to dist/  (static; CMS excluded)
+npm run preview        # serve the production build locally
 ```
+
+## Two ways to edit content
+
+Both write the same plain files into `src/content` and `public/images`, and
+both are local-only:
+
+- **`npm run dev` → /keystatic** — the full CMS: rich MDX editor, inline image
+  drag/paste, the project "stills" as blocks.
+- **`npm run edit`** — a dependency-free editor (plain `node:http`, no Vite, no
+  React) that starts instantly. Frontmatter fields, a Markdown textarea with a
+  small toolbar, and image upload. Good when you just want to fix a sentence.
 
 ## Adding content — the easy way (Keystatic CMS)
 
@@ -28,8 +44,10 @@ frontmatter by hand.
 5. Publish it — see the versioning commands below.
 
 **How it stays static & private:** Keystatic (and its React runtime) load only
-in `npm run dev` — see the `isDev` switch in `astro.config.mjs`. The deployed
-site never ships the CMS, needs no login, and has no serverless functions.
+under `astro dev` — see the `cliCommand` switch in `astro.config.mjs`. It keys
+off the astro subcommand rather than `NODE_ENV`, which Astro never sets, so a
+production build genuinely excludes the CMS instead of only appearing to. The
+deployed site ships no CMS, needs no login, and has no serverless functions.
 You author locally and publish via git. (To later edit from anywhere incl.
 phone, flip `storage.kind` in `keystatic.config.tsx` from `'local'` to
 `'github'` and install the Keystatic GitHub app — no other change needed.)
@@ -129,5 +147,7 @@ identity in the tokens, not in individual components.
 
 ## Deploy
 
-Push to `main`; Netlify builds with `npm run build` and publishes `dist/`
-(see `netlify.toml`). No domain is hardcoded anywhere.
+Push to `main`; Netlify builds with `npm run build` and publishes `dist/`.
+Those settings live in the Netlify site config, not in the repo — there is no
+`netlify.toml` here. Set the build image's Node version to match
+`.node-version` (22). No domain is hardcoded anywhere.

@@ -1,0 +1,205 @@
+---
+// LLM Inference Benchmark, the result that a single "tokens/sec" number would
+// have hidden: the throughput ranking flips as concurrency rises. Values from
+// report/REPORT.md (run ba442d8d), averaged within a concurrency group where it
+// spans two scenarios.
+//
+// Same fixed light interior and same validated two-series palette as
+// InferenceTtftStill, so the two figures read as one set.
+import StillFrame from './StillFrame.astro';
+
+const SS = '#0A9877'; // Simplismart
+const FW = '#BE6F14'; // Fireworks AI
+const MAX = 800; // output tokens/sec. Axis top
+
+const groups = [
+  { load: '1', ss: 160, fw: 63 },
+  { load: '5', ss: 340, fw: 231 },
+  { load: '10', ss: 488, fw: 740 },
+];
+
+const pct = (v: number) => `${(v / MAX) * 100}%`;
+---
+
+<StillFrame
+  variant="browser"
+  url="report/REPORT.md"
+  label="Output throughput by concurrency, higher is better"
+>
+  <div class="thr">
+    <header class="thr-head">
+      <p class="thr-k">Output tokens per second</p>
+      <h4 class="thr-t">The ranking flips once the endpoint is busy</h4>
+      <ul class="thr-legend">
+        <li><span class="sw" style={`background:${SS}`}></span>Simplismart</li>
+        <li><span class="sw" style={`background:${FW}`}></span>Fireworks AI</li>
+      </ul>
+    </header>
+
+    <div class="thr-plot">
+      {
+        groups.map((g) => (
+          <div class="thr-group">
+            <div class="thr-cols">
+              <div class="thr-col">
+                <span class="thr-val">{g.ss}</span>
+                <span
+                  class="thr-fill"
+                  style={`height:${pct(g.ss)};background:${SS}`}
+                  title={`Simplismart: ${g.ss} tok/s`}
+                />
+              </div>
+              <div class="thr-col">
+                <span class="thr-val">{g.fw}</span>
+                <span
+                  class="thr-fill"
+                  style={`height:${pct(g.fw)};background:${FW}`}
+                  title={`Fireworks AI: ${g.fw} tok/s`}
+                />
+              </div>
+            </div>
+            <p class="thr-load">{g.load}</p>
+          </div>
+        ))
+      }
+    </div>
+    <p class="thr-axis">Concurrent requests in flight</p>
+
+    <p class="thr-foot">
+      At 10 concurrent requests with 200-token generations, Fireworks overtakes. The only
+      scenario in the run where it leads on raw throughput.
+    </p>
+  </div>
+</StillFrame>
+
+<style>
+  .thr {
+    background: #fcfcfb;
+    color: #2b2420;
+    padding: 20px 22px 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .thr-head {
+    margin-bottom: 18px;
+  }
+  .thr-k {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #857d6f;
+  }
+  /* Explicit colour: the page's global heading rule paints h1–h4 in the site
+     accent, which is tuned for the parchment background and washes out against
+     this figure's fixed light surface. */
+  .thr-t {
+    margin: 3px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.25;
+    color: #2b2420;
+  }
+  .thr-legend {
+    display: flex;
+    gap: 1rem;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 11.5px;
+    color: #6b6558;
+  }
+  .thr-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sw {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  /* Plot: three concurrency groups sharing one baseline. The baseline is the
+     only rule on the plot, with no gridlines competing with the bars. */
+  .thr-plot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    height: 170px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ddd7c8;
+  }
+  .thr-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+  }
+  .thr-cols {
+    display: flex;
+    align-items: flex-end;
+    /* 2px of surface between the paired fills. */
+    gap: 2px;
+    height: 100%;
+  }
+  .thr-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+  }
+  .thr-fill {
+    display: block;
+    width: 30px;
+    /* Rounded at the data-end, square where it meets the baseline. */
+    border-radius: 4px 4px 0 0;
+  }
+  .thr-val {
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: #6b6558;
+  }
+  .thr-load {
+    margin: 7px 0 0;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #2b2420;
+  }
+  .thr-axis {
+    margin: 2px 0 0;
+    text-align: center;
+    font-size: 10.5px;
+    color: #a09889;
+  }
+
+  .thr-foot {
+    margin: 16px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid #eae5d9;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #6b6558;
+  }
+
+  @media (max-width: 520px) {
+    .thr {
+      padding: 16px 15px 13px;
+    }
+    .thr-t {
+      font-size: 15px;
+    }
+    .thr-plot {
+      height: 140px;
+    }
+    .thr-fill {
+      width: 24px;
+    }
+  }
+</style>
