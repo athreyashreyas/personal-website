@@ -16,6 +16,7 @@ export const EMBED_LABELS: Record<string, string> = {
   LatencyWidget: 'Interactive — the number you feel (TTFT vs throughput)',
   LifeInWeeksWidget: 'Interactive — life in weeks grid',
   ServerSeesWidget: 'Interactive — what the server sees (encryption demo)',
+  ShelfGraphWidget: 'Interactive — the shelf (recommendations as a graph)',
 };
 
 /** The component name for an embed's path, e.g. ".../LatencyWidget.astro" → "LatencyWidget". */

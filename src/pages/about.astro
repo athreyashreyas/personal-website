@@ -1,10 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getEntry, render } from 'astro:content';
+import { renderPage } from '../lib/pages';
 
 // Editable in the CMS under "About page" (src/content/about.mdx).
-const about = await getEntry('pages', 'about');
-const { Content } = await render(about!);
+const { Content } = await renderPage('about');
 ---
 
 <BaseLayout title="About">

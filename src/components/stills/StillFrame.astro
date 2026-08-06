@@ -38,6 +38,13 @@ const { variant = 'phone', label, url, protect = false } = Astro.props;
     margin: 2.25rem 0;
   }
 
+  /* App UI is never justified. The write-up's prose is (`.prose p` in
+     global.css), and that rule reaches into the slotted screen, opening rivers
+     in a 300px-wide phone. Reset it here rather than in every still. */
+  .still-screen :global(p) {
+    text-align: left;
+  }
+
   /* Images inside a still are screenshots that fill the frame. Neutralise the
      page's `.prose img` styling (border, radius, margin) which would otherwise
      draw a dark inner border and a gap between the chrome and the shot. */

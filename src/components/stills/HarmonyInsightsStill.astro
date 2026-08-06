@@ -1,0 +1,400 @@
+---
+// Harmony — Insights, reconstructed from screens/insights/InsightsScreen.tsx
+// plus the two charts it leans on, components/charts/TrendChart.tsx and
+// DivergingBars.tsx. Colours are the app's default "terracotta" theme tokens
+// (styles/tokens.css): parchment for paper, ink for type, iris-500 for the
+// accent, sage-500 for lift. The copy is the real thing — the momentum caption
+// is what the screen writes when the week is up on the last one, and the run
+// line only appears at two days or more.
+//
+// Same moment as HarmonyStill and HarmonyTodayStill: the week ending Friday 28
+// July, same six areas, same tug. Dialled down for the blog — the live screen
+// also carries a calendar heatmap, a weekday/time-of-day pair, a radar of
+// balance across life, and per-habit rows.
+import StillFrame from './StillFrame.astro';
+
+const IRIS = '#b5532f'; // --iris-500, the accent in the default theme
+const SAGE = '#5b7a35'; // --sage-500, lift
+const DRAG = '#5a636f'; // DivergingBars' fixed drag colour
+
+const summary = [
+  { value: '18', label: 'tended' },
+  { value: '6', label: 'days shown up' },
+  { value: '6', label: 'areas active' },
+];
+
+// One point per day of the range, each a ratio in [0,1] of what was set out to
+// be done that came back.
+const trend = [
+  { label: 'Mon', ratio: 0.5 },
+  { label: 'Tue', ratio: 0.68 },
+  { label: 'Wed', ratio: 0.4 },
+  { label: 'Thu', ratio: 0.78 },
+  { label: 'Fri', ratio: 0.6 },
+  { label: 'Sat', ratio: 0.88 },
+  { label: 'Sun', ratio: 0.74 },
+];
+
+// TrendChart's own geometry, so the curve sits exactly where the app puts it.
+const TW = 320;
+const TH = 116;
+const TPAD = 8;
+const tx = (i: number) => TPAD + (i / (trend.length - 1)) * (TW - TPAD * 2);
+const ty = (r: number) => TPAD + (1 - r) * (TH - TPAD * 2);
+const trendLine = trend
+  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${tx(i).toFixed(1)} ${ty(p.ratio).toFixed(1)}`)
+  .join(' ');
+const trendArea = `${trendLine} L ${tx(trend.length - 1).toFixed(1)} ${TH - TPAD} L ${tx(0).toFixed(1)} ${TH - TPAD} Z`;
+// The axis shows a handful of evenly spaced labels rather than all seven.
+const trendStep = Math.max(1, Math.ceil(trend.length / 6));
+
+// Lift is the day's tending; drag is what the tugs took off it. CAP mirrors the
+// tug penalty ceiling in lib/insights/analytics.ts, so a full-height drag bar
+// means the most a tug can ever pull.
+const CAP = 0.6;
+const HALF = 44;
+const tugs = [
+  { label: 'Mon', lift: 0.5, drag: 0 },
+  { label: 'Tue', lift: 0.68, drag: 0.15 },
+  { label: 'Wed', lift: 0.4, drag: 0.3 },
+  { label: 'Thu', lift: 0.78, drag: 0 },
+  { label: 'Fri', lift: 0.6, drag: 0 },
+  { label: 'Sat', lift: 0.88, drag: 0.2 },
+  { label: 'Sun', lift: 0.74, drag: 0 },
+];
+const tugStep = Math.max(1, Math.ceil(tugs.length / 6));
+---
+
+<StillFrame
+  variant="phone"
+  label="Insights: how much of the week came back to you, and the honest picture of lift against drag"
+>
+  <div class="hmi">
+    <h3 class="hmi-title">Insights</h3>
+
+    <div class="hmi-seg">
+      <span class="hmi-seg-opt is-on">Insights</span>
+      <span class="hmi-seg-opt">Garden</span>
+    </div>
+    <div class="hmi-seg">
+      <span class="hmi-seg-opt is-on">Week</span>
+      <span class="hmi-seg-opt">Month</span>
+      <span class="hmi-seg-opt">Year</span>
+      <span class="hmi-seg-opt">All</span>
+    </div>
+
+    <div class="hmi-chips">
+      <span class="hmi-chip is-on">All of life</span>
+      <span class="hmi-chip"><span class="hmi-chip-dot" style="background:#b5532f"></span>Movement</span>
+      <span class="hmi-chip"><span class="hmi-chip-dot" style="background:#c98f3e"></span>Mind</span>
+    </div>
+
+    <div class="hmi-summary">
+      {
+        summary.map((s) => (
+          <div class="hmi-card hmi-stat">
+            <p class="hmi-stat-v">{s.value}</p>
+            <p class="hmi-stat-l">{s.label}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="hmi-run">
+      You're on a <span class="hmi-run-n">4-day</span> run of showing up. Beautiful.
+    </p>
+
+    <section class="hmi-section">
+      <p class="hmi-eyebrow">Momentum</p>
+      <p class="hmi-hint">How much of what you set out to do you came back to.</p>
+      <div class="hmi-card">
+        <svg
+          class="hmi-trend"
+          viewBox={`0 0 ${TW} ${TH}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Tending over time"
+        >
+          <defs>
+            <linearGradient id="hmi-trend-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color={IRIS} stop-opacity="0.28"></stop>
+              <stop offset="100%" stop-color={IRIS} stop-opacity="0"></stop>
+            </linearGradient>
+          </defs>
+          <line
+            x1={TPAD} y1={TH - TPAD} x2={TW - TPAD} y2={TH - TPAD}
+            stroke="#e7d3b4" stroke-width="1" vector-effect="non-scaling-stroke"
+          ></line>
+          <line
+            x1={TPAD} y1={ty(0.5)} x2={TW - TPAD} y2={ty(0.5)}
+            stroke="#e7d3b4" stroke-width="1" stroke-dasharray="2 4"
+            vector-effect="non-scaling-stroke" opacity="0.7"
+          ></line>
+          <path d={trendArea} fill="url(#hmi-trend-grad)"></path>
+          <path
+            d={trendLine} fill="none" stroke={IRIS} stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <div class="hmi-axis">
+          {trend.map((p, i) => <span>{i % trendStep === 0 || i === trend.length - 1 ? p.label : ''}</span>)}
+        </div>
+        <p class="hmi-caption">A little more than the previous week.</p>
+      </div>
+    </section>
+
+    <section class="hmi-section">
+      <p class="hmi-eyebrow">Lift and drag</p>
+      <p class="hmi-hint">
+        Your habits rise above the line; the tugs you're easing off pull below it.
+      </p>
+      <div class="hmi-card">
+        <div class="hmi-bars">
+          {
+            tugs.map((p) => (
+              <div class="hmi-col">
+                <div class="hmi-half hmi-half--up" style={`height:${HALF}px`}>
+                  <span
+                    class="hmi-bar hmi-bar--up"
+                    style={`height:${Math.max(p.lift > 0 ? 2 : 0, p.lift * HALF)}px;background:${SAGE}`}
+                  />
+                </div>
+                <div class="hmi-rule"></div>
+                <div class="hmi-half hmi-half--down" style={`height:${HALF}px`}>
+                  <span
+                    class="hmi-bar hmi-bar--down"
+                    style={`height:${Math.max(p.drag > 0 ? 2 : 0, (p.drag / CAP) * HALF)}px;background:${DRAG}`}
+                  />
+                </div>
+              </div>
+            ))
+          }
+        </div>
+        <div class="hmi-axis">
+          {tugs.map((p, i) => <span>{i % tugStep === 0 || i === tugs.length - 1 ? p.label : ''}</span>)}
+        </div>
+        <div class="hmi-tug-row">
+          <span class="hmi-tug-name">Late-night scrolling</span>
+          <span class="hmi-tug-meta">3× this week · today</span>
+        </div>
+        <div class="hmi-tug-row">
+          <span class="hmi-tug-name">Skipping breakfast</span>
+          <span class="hmi-tug-meta">1× this week · 2d ago</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</StillFrame>
+
+<style>
+  /* Palette is Harmony's own (tokens.css, terracotta theme), not the site's —
+     a still should read like a screenshot in either page theme. */
+  .hmi {
+    background: #fbf1e4;
+    color: #483a27;
+    padding: 18px 16px 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .hmi-title {
+    margin: 0 0 12px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 23px;
+    color: #23190f;
+  }
+
+  .hmi-seg {
+    display: flex;
+    gap: 2px;
+    background: #f3e4cf;
+    border-radius: 999px;
+    padding: 2px;
+    margin-bottom: 8px;
+  }
+  .hmi-seg-opt {
+    flex: 1;
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 5px 0;
+    border-radius: 999px;
+    color: #76654c;
+  }
+  .hmi-seg-opt.is-on {
+    background: #fffaf1;
+    color: #23190f;
+    box-shadow: 0 1px 2px rgba(35, 25, 15, 0.05), 0 1px 3px rgba(35, 25, 15, 0.04);
+  }
+
+  .hmi-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 10px 0 0;
+  }
+  .hmi-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f3e4cf;
+    color: #76654c;
+  }
+  .hmi-chip.is-on {
+    background: #fbf0e4;
+    color: #b5532f;
+  }
+  .hmi-chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .hmi-card {
+    background: #fffaf1;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 1px 2px rgba(35, 25, 15, 0.05), 0 1px 3px rgba(35, 25, 15, 0.04);
+  }
+
+  .hmi-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin-top: 14px;
+  }
+  .hmi-stat {
+    text-align: center;
+    padding: 10px 4px;
+  }
+  .hmi-stat-v {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    line-height: 1;
+    color: #23190f;
+  }
+  .hmi-stat-l {
+    margin: 4px 0 0;
+    font-size: 9.5px;
+    line-height: 1.2;
+    color: #ab977a;
+  }
+
+  .hmi-run {
+    margin: 11px 0 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #76654c;
+  }
+  .hmi-run-n {
+    font-weight: 600;
+    color: #483a27;
+  }
+
+  .hmi-section {
+    margin-top: 20px;
+  }
+  .hmi-eyebrow {
+    margin: 0;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ab977a;
+  }
+  .hmi-hint {
+    margin: 3px 0 0;
+    font-size: 10px;
+    line-height: 1.35;
+    color: #ab977a;
+  }
+  .hmi-section .hmi-card {
+    margin-top: 9px;
+  }
+
+  /* preserveAspectRatio="none" stretches the curve to the card width, which is
+     what the app does; the stroke is held even by non-scaling-stroke. */
+  .hmi-trend {
+    display: block;
+    width: 100%;
+    height: 92px;
+  }
+
+  .hmi-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+    margin-top: 5px;
+  }
+  .hmi-axis span {
+    font-size: 9px;
+    color: #ab977a;
+  }
+
+  .hmi-caption {
+    margin: 7px 0 0;
+    font-size: 10px;
+    color: #ab977a;
+  }
+
+  .hmi-bars {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .hmi-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hmi-half {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+  .hmi-half--up {
+    align-items: flex-end;
+  }
+  .hmi-half--down {
+    align-items: flex-start;
+  }
+  .hmi-bar {
+    width: 100%;
+    max-width: 13px;
+  }
+  .hmi-bar--up {
+    border-radius: 4px 4px 0 0;
+  }
+  .hmi-bar--down {
+    border-radius: 0 0 4px 4px;
+  }
+  .hmi-rule {
+    width: 100%;
+    height: 1px;
+    background: #e7d3b4;
+  }
+
+  .hmi-tug-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 7px;
+    font-size: 10.5px;
+  }
+  .hmi-tug-row:first-of-type {
+    margin-top: 12px;
+  }
+  .hmi-tug-name {
+    color: #483a27;
+  }
+  .hmi-tug-meta {
+    color: #ab977a;
+    flex: none;
+  }
+</style>

@@ -1,11 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Figure from '../components/Figure.astro';
-import { getEntry, render } from 'astro:content';
+import { renderPage } from '../lib/pages';
 
 // Editable in the CMS under "Home intro" (src/content/home.mdx).
-const home = await getEntry('pages', 'home');
-const { Content } = await render(home!);
+const { Content } = await renderPage('home');
 ---
 
 <BaseLayout title="Shreyas Athreya">

@@ -18,7 +18,10 @@
     "content:publish": "node scripts/content.mjs publish",
     "content:undo": "node scripts/content.mjs undo",
     "content:history": "node scripts/content.mjs history",
-    "content:restore": "node scripts/content.mjs restore"
+    "content:restore": "node scripts/content.mjs restore",
+    "clean": "node scripts/clean.mjs",
+    "predev": "node scripts/clean.mjs --quiet",
+    "prebuild": "node scripts/clean.mjs --quiet"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.14",

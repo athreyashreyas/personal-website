@@ -7,16 +7,24 @@ import {
 } from './src/lib/stills';
 import { EMBED_LABELS, embedNameFromPath } from './src/lib/embeds';
 
-// Project write-ups embed Astro "still" components (screenshot mock-ups) as
-// bare <XyzStill /> JSX tags. Keystatic's MDX editor needs every component
-// used in content to be registered here — none take props, they're purely
-// visual on the live site — otherwise it fails with "Missing component
-// definition for X" the moment it tries to load an entry that uses one.
-function still(label: string) {
+// Project write-ups embed Astro components as bare <Xyz /> JSX tags. Keystatic's
+// MDX editor needs every component used in content to be registered here, or it
+// fails with "Missing component definition for X" the moment it tries to load an
+// entry that uses one.
+//
+// `schema` is not optional detail: Keystatic validates every JSX attribute in
+// the MDX against it, and an undeclared one fails the whole entry with
+// `Key on object value "<prop>" is not allowed`. So a component's schema has to
+// list every prop the content actually passes it — see EMBED_SCHEMAS below.
+// The stills take none, hence the default.
+function still(label: string, schema: Record<string, any> = {}) {
+  const editable = Object.keys(schema).length > 0;
   return block({
     label,
-    description: 'Renders on the live site — not editable here.',
-    schema: {},
+    description: editable
+      ? 'Renders on the live site. The fields below are its props.'
+      : 'Renders on the live site — not editable here.',
+    schema,
     ContentView: () => (
       <div
         style={{
@@ -44,15 +52,52 @@ const stillComponents = Object.fromEntries(
     .map((name) => [name, still(STILL_LABELS[name] ?? humanizeStillName(name))]),
 );
 
-// The interactive embeds (<LatencyWidget />, <ServerSeesWidget />) register the
-// same way and for the same reason. They do take props on the site, but the CMS
-// only needs to know the tag exists — props stay hand-written in the MDX, so the
-// schema here is empty like the stills'.
+/**
+ * The props each interactive embed accepts, mirroring the `interface Props` in
+ * its .astro file — same names, same defaults.
+ *
+ * Unlike the stills, the embeds are configured per use (<ServerSeesWidget> gets
+ * a different sample note in Nila than in Hisaab), and Keystatic rejects any
+ * attribute it hasn't been told about. An embed added here with props missing
+ * from this map renders fine on the site but makes every entry that configures
+ * it impossible to open in the CMS.
+ */
+const EMBED_SCHEMAS: Record<string, Record<string, any>> = {
+  LatencyWidget: {
+    aTtft: fields.number({ label: 'A — time to first token (ms)', defaultValue: 180 }),
+    bTtft: fields.number({ label: 'B — time to first token (ms)', defaultValue: 1200 }),
+    aTps: fields.number({ label: 'A — tokens per second', defaultValue: 45 }),
+    bTps: fields.number({ label: 'B — tokens per second', defaultValue: 90 }),
+    aLabel: fields.text({ label: 'A — name', defaultValue: 'A' }),
+    bLabel: fields.text({ label: 'B — name', defaultValue: 'B' }),
+    caption: fields.text({
+      label: 'Caption',
+      multiline: true,
+      defaultValue:
+        'A simulation of two timing profiles, not a live model call. Drag either slider to change its time to first token.',
+    }),
+  },
+  LifeInWeeksWidget: {
+    years: fields.number({ label: 'Life drawn, in years', defaultValue: 70 }),
+    defaultBirthday: fields.text({ label: 'Starting birthday (yyyy-mm-dd)', defaultValue: '2000-01-01' }),
+  },
+  ServerSeesWidget: {
+    sample: fields.text({
+      label: 'Sample note',
+      description: 'The kind of data this project would store — a cycle log, an expense.',
+      defaultValue: 'Period started today. Cramps mild.',
+    }),
+  },
+};
+
 const embedComponents = Object.fromEntries(
   Object.keys(import.meta.glob('./src/components/embeds/*Widget.astro'))
     .map(embedNameFromPath)
     .sort()
-    .map((name) => [name, still(EMBED_LABELS[name] ?? humanizeStillName(name))]),
+    .map((name) => [
+      name,
+      still(EMBED_LABELS[name] ?? humanizeStillName(name), EMBED_SCHEMAS[name] ?? {}),
+    ]),
 );
 
 const contentComponents = { ...stillComponents, ...embedComponents };
@@ -197,6 +242,10 @@ export default config({
           {
             repo: fields.url({ label: 'Repo URL' }),
             live: fields.url({ label: 'Live URL' }),
+            doc: fields.url({
+              label: 'Write-up URL',
+              description: 'A doc, report, or deck that lives outside this site.',
+            }),
           },
           { label: 'Links' },
         ),
@@ -210,6 +259,37 @@ export default config({
             },
           },
           components: contentComponents,
+        }),
+      },
+    }),
+
+    /**
+     * The controlled tag vocabulary, one entry per tag.
+     *
+     * `fields.slug` derives the filename from the label and enforces that no
+     * two entries share one, which is the whole mechanism: "Public Policy",
+     * "public policy" and "public  policy" all reduce to `public-policy`, so
+     * the second attempt to create it is rejected and the existing tag gets
+     * reused instead.
+     */
+    tags: collection({
+      label: 'Tags',
+      slugField: 'label',
+      path: 'src/content/tags/*',
+      format: { data: 'yaml' },
+      columns: ['label'],
+      schema: {
+        label: fields.slug({
+          name: {
+            label: 'Tag',
+            description: 'How it reads on the site — lower case, e.g. "public policy".',
+          },
+          slug: {
+            label: 'ID',
+            description:
+              'The canonical form, generated from the tag. Recommendations store this, so ' +
+              'changing it detaches every entry already using the tag.',
+          },
         }),
       },
     }),
@@ -231,9 +311,14 @@ export default config({
           label: 'Category',
           description: 'Optional — e.g. Book, Article, Tool, Rabbit hole.',
         }),
-        tags: fields.array(fields.text({ label: 'Tag' }), {
+        // Picked from the Tags collection rather than typed free-hand. The
+        // picker searches what already exists, so one idea can't arrive as
+        // "Public Policy" on one entry and "public policy" on the next.
+        tags: fields.array(fields.relationship({ label: 'Tag', collection: 'tags' }), {
           label: 'Tags',
-          itemLabel: (props) => props.value,
+          description:
+            'Search the tags that already exist. To use a new one, add it under Tags first.',
+          itemLabel: (props) => props.value ?? 'Pick a tag',
         }),
         date: fields.date({
           label: 'Date added',

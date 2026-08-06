@@ -28,9 +28,27 @@ const projects = defineCollection({
       .object({
         repo: optionalUrl,
         live: optionalUrl,
+        /** A write-up that lives elsewhere — a doc, a report, a slide deck. */
+        doc: optionalUrl,
       })
       .default({}),
     date: z.coerce.date().optional(),
+  }),
+});
+
+/**
+ * The controlled tag vocabulary. One entry per tag, filename = the canonical
+ * id; recommendations reference those ids rather than repeating free text.
+ *
+ * This is what stops "Public Policy", "public policy" and "public  policy"
+ * becoming three tags: they all slugify to `public-policy`, and Keystatic
+ * refuses to create a second entry at a slug that already exists, so the only
+ * way to tag something is to pick the tag that is already there.
+ */
+const tags = defineCollection({
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/tags' }),
+  schema: z.object({
+    label: z.string(),
   }),
 });
 
@@ -40,6 +58,7 @@ const recommendations = defineCollection({
     title: z.string(),
     url: optionalUrl,
     category: optionalString,
+    /** Ids from the `tags` collection above, not display text. */
     tags: z.array(z.string()).default([]),
     date: z.coerce.date(),
   }),
@@ -52,4 +71,4 @@ const pages = defineCollection({
   schema: z.object({}),
 });
 
-export const collections = { writing, projects, recommendations, pages };
+export const collections = { writing, projects, recommendations, tags, pages };

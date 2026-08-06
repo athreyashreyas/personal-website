@@ -177,12 +177,13 @@ const {
     color: var(--accent-heading);
   }
 
+  /* Matches StillFrame's figcaption, so a widget's caption and a still's read
+     as the same thing on a page that carries both. */
   .lw-caption {
-    margin: 0.75rem 0 0;
+    margin: 0.8rem 0 0;
+    text-align: center;
     font-family: var(--font-sans);
-    font-size: var(--label-size);
-    text-transform: uppercase;
-    letter-spacing: var(--label-tracking);
+    font-size: 0.82rem;
     color: var(--text-secondary);
   }
 
@@ -197,11 +198,22 @@ const {
 </style>
 
 <script>
-  // Long enough that B's throughput advantage actually overtakes A's head
-  // start — below roughly 92 words A simply wins and the demonstration has no
-  // teeth. This is the whole reason the passage is this length.
+  // Everything up to "See for yourself:" is the point being made; the quoted
+  // filler after it is just something for the two streams to race through,
+  // since by then you are watching the timing rather than reading.
+  //
+  // The lone   between the two halves is deliberate. The passage is split
+  // on spaces and rejoined with one, and HTML collapses a run of spaces to a
+  // single one — a non-breaking space is the only way to hold open a visible
+  // gap there.
+  //
+  // Length is load-bearing: with the component's default profiles (A 180 ms /
+  // 45 tok-s, B 1200 ms / 90 tok-s) B only overtakes A's head start past ~92
+  // words. Shorter than that and A wins outright and the demonstration has no
+  // teeth. This runs 106, so there is a little room but not much — keep it
+  // above 92 if you edit it.
   const PASSAGE =
-    `Tokens per second is the number on the pricing page, but it is not the number you feel. What you feel is the wait before anything appears at all, and then whether the words keep up with how fast you read. Sit in front of a chat box and the first half second decides whether the thing seems alive or broken. A stream that starts late can still finish first on the clock and feel slower the whole way there. Throughput is a property of the fleet. Latency is a property of the conversation. Only one of them is in the room with you while you wait for it.`.split(
+    `Tokens per second is the number every inference provider uses on the pricing page, but it is not the number you feel using a consumer facing AI application. What you feel is the wait before anything appears at all, and then whether the words keep up with how fast you read. See for yourself:  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."`.split(
       ' ',
     );
 

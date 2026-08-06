@@ -1,105 +1,69 @@
 ---
-// Scratch page for Lab candidates — where a Lab idea gets tried before it
-// earns a place on /lab. Deliberately unlinked from anywhere: reach it by URL.
-//
-// The shelf graph that started here now ships as
-// components/embeds/ShelfGraphWidget.astro and is live on /lab. It stays here
-// with its sample-data toggle, which the shipped widget drops, because that is
-// the only way to see how the layout behaves at a couple of dozen entries.
-import BaseLayout from '../../layouts/BaseLayout.astro';
+/**
+ * "The shelf" — everything on the recommendations page drawn as a graph.
+ * Entries are the large nodes, coloured by category; the tags they share are
+ * the small ones. Nothing about the shape is authored: it's a force layout over
+ * whatever the collection happens to contain, so books that share a tag pull
+ * together on their own.
+ *
+ * Data rides on a data attribute rather than a JSON <scr!pt> — Vite's dependency
+ * scanner parses script tags as JavaScript and chokes on JSON.
+ */
 import { shelfItems } from '../../lib/shelf';
 
-// Handed to the client on a data attribute rather than via define:vars, which
-// would stop the module below from being bundled.
-//
-// NB: never write a literal script tag in this frontmatter, not even inside a
-// comment. The compiler splits the file on that text wherever it appears, so
-// everything after it gets handed to esbuild as JavaScript and the dev server
-// fails its dependency scan with a parse error pointing at the comment.
-const shelf = await shelfItems();
+const items = await shelfItems();
 ---
 
-<BaseLayout title="Lab previews" prose={false}>
-  <header class="page-head">
-    <h1><span class="hl-title">Lab previews</span></h1>
-    <p class="page-sub">One candidate. Nothing here is finished.</p>
-  </header>
-
-  <section class="sketch" id="sketch-shelf">
-    <div class="sketch-head">
-      <h2>The shelf</h2>
-      <p class="blurb">
-        Everything on the recommendations page as a graph. Large nodes are the
-        entries, coloured by what kind of thing each one is; small nodes are the
-        tags they share. Nothing about the shape is authored — it is whatever
-        the collection happens to be. Hover a node to isolate what it touches,
-        drag one to pull the rest along, click an entry to open it.
-      </p>
-    </div>
-
-    <div class="stage">
-      <div class="controls">
-        <span class="seg">
-          <button type="button" class="btn is-on" data-shelf-mode="real">
-            Real ({shelf.length})
-          </button>
-          <button type="button" class="btn" data-shelf-mode="sample">Sample (14)</button>
-        </span>
-        <output class="readout" data-shelf-readout></output>
-      </div>
-      <canvas class="canvas" data-shelf-canvas data-shelf-items={JSON.stringify(shelf)}></canvas>
-      <ul class="legend" data-shelf-legend></ul>
-      <p class="caption">
-        The sample set is invented, and only here to show what the graph looks
-        like once the real shelf is a couple of dozen entries deep.
-      </p>
-    </div>
-  </section>
-</BaseLayout>
+<figure class="sg" data-shelf>
+  <div class="sg-controls">
+    <output class="sg-readout" data-shelf-readout></output>
+  </div>
+  <canvas class="sg-canvas" data-shelf-canvas data-shelf-items={JSON.stringify(items)}></canvas>
+  <ul class="sg-legend" data-shelf-legend></ul>
+  <figcaption class="sg-note">
+    Hover over a node to isolate what it touches, drag one to pull the rest along and click an entry to open it.
+  </figcaption>
+</figure>
 
 <style>
-  .page-head {
-    margin-bottom: 2.5rem;
+  .sg {
+    margin: 2rem 0;
+    padding: 0;
   }
-  .page-sub {
-    margin: 0.1rem 0 0;
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: 1.2rem;
+
+  .sg-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
     color: var(--text-secondary);
   }
-
-  .sketch-head h2 {
-    margin: 0;
-    font-size: 1.3rem;
-  }
-  .blurb {
-    margin: 0.35rem 0 0;
-    max-width: 62ch;
-    color: var(--text-secondary);
+  .sg-readout {
+    font-variant-numeric: tabular-nums;
   }
 
-  .stage {
-    margin-top: 1rem;
-  }
-
-  .canvas {
+  .sg-canvas {
     display: block;
     width: 100%;
-    height: 520px;
+    height: 460px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
     touch-action: none;
     cursor: grab;
   }
-  .canvas.is-grabbing {
+  .sg-canvas.is-grabbing {
     cursor: grabbing;
   }
 
-  /* Built in JS from whichever categories the collection actually contains,
-     so its rows need :global to pick these up. */
-  .legend {
+  /* Rows are built in JS from whichever categories the collection contains, so
+     they never carry the scoping attribute — these have to be :global. */
+  .sg-legend {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem 1.1rem;
@@ -112,81 +76,77 @@ const shelf = await shelfItems();
     letter-spacing: var(--label-tracking);
     color: var(--text-secondary);
   }
-  .legend :global(li) {
+  .sg-legend :global(li) {
     display: inline-flex;
     align-items: center;
     gap: 0.45em;
   }
-  .legend :global(.swatch) {
+  .sg-legend :global(.sg-swatch) {
     width: 0.6em;
     height: 0.6em;
     border-radius: 50%;
     background: currentColor;
   }
-  .legend :global(li.is-tag .swatch) {
+  .sg-legend :global(li.is-tag .sg-swatch) {
     width: 0.42em;
     height: 0.42em;
   }
 
-  .caption {
-    margin: 0.6rem 0 0;
+  .sg-note {
+    margin: 0.8rem auto 0;
     max-width: 62ch;
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-  }
-
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
     font-family: var(--font-sans);
-    font-size: var(--label-size);
-    text-transform: uppercase;
-    letter-spacing: var(--label-tracking);
+    font-size: 0.78rem;
+    line-height: 1.5;
     color: var(--text-secondary);
-  }
-
-  .btn {
-    font: inherit;
-    text-transform: inherit;
-    letter-spacing: inherit;
-    color: var(--text-primary);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0.35em 0.9em;
-    cursor: pointer;
-  }
-  .btn:hover {
-    border-color: var(--accent-link);
-    color: var(--accent-link);
-  }
-  .btn.is-on {
-    border-color: var(--accent-heading);
-    color: var(--accent-heading);
-  }
-  .seg {
-    display: inline-flex;
-    gap: 0.35rem;
-  }
-
-  .readout {
-    font-variant-numeric: tabular-nums;
+    text-align: center;
   }
 
   @media (max-width: 720px) {
-    .canvas {
-      height: 420px;
+    .sg-canvas {
+      height: 380px;
     }
   }
 </style>
 
 <script>
-  const cleanups: Array<() => void> = [];
   const SANS = "'Plus Jakarta Sans', system-ui, sans-serif";
   const SERIF = "'Newsreader', Georgia, serif";
+
+  /** One hue per kind of entry, so a book and a newsletter don't read as the
+      same thing. Desaturated and warm enough to sit on the paper background —
+      the site's own two greens are only two values, which isn't enough to carry
+      a categorical scale. Each pair is [light theme, dark theme]; the dark
+      values are lifted, since the light ones go muddy on charcoal. `tag` is
+      deliberately the odd one out: neutral, so tags read as the connective
+      tissue between entries rather than as content. */
+  const HUES: Record<string, [string, string]> = {
+    book: ['#2F7D5F', '#7FCBA9'],
+    essay: ['#B4552F', '#E08A5F'],
+    newsletter: ['#8A5FA0', '#C09AD4'],
+    link: ['#3E7191', '#8CB8D6'],
+    talk: ['#A07A22', '#DCB65F'],
+    film: ['#A24A6B', '#D690A8'],
+    tag: ['#8C8578', '#9C958A'],
+    other: ['#5C7A6B', '#93B3A2'],
+  };
+
+  type Item = { title: string; url: string | null; category: string | null; tags: string[] };
+  type Node = {
+    label: string;
+    kind: 'item' | 'tag';
+    hue: string;
+    url: string | null;
+    deg: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    pinned: boolean;
+  };
+  type Rect = { x: number; y: number; w: number; h: number };
+
+  const cleanups: Array<() => void> = [];
 
   function palette() {
     const cs = getComputedStyle(document.documentElement);
@@ -196,8 +156,6 @@ const shelf = await shelfItems();
       text: v('--text-primary'),
       dim: v('--text-secondary'),
       border: v('--border'),
-      accent: v('--accent-link'),
-      heading: v('--accent-heading'),
     };
   }
 
@@ -217,10 +175,6 @@ const shelf = await shelfItems();
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   }
 
-  /** Sizes a canvas to its CSS box and DPR. `onResize` intentionally does not
-      fire for the first sizing: callers hold the returned ctx in a const, and a
-      synchronous callback would touch that binding inside its temporal dead
-      zone. Callers draw their own first frame. */
   function fitCanvas(canvas: HTMLCanvasElement, onResize?: () => void) {
     const ctx = canvas.getContext('2d')!;
     const size = () => {
@@ -239,19 +193,35 @@ const shelf = await shelfItems();
     return ctx;
   }
 
-  /** Repaints every frame until the theme transition finishes, coalescing rapid
-      switches into one window. See the fuller note in
-      components/embeds/ShelfGraphWidget.astro — the tokens are animated, so a
-      single redraw on the change event strands the canvas on a colour part-way
-      between the two themes. */
+  /**
+   * Run `fn` every frame until the theme transition has finished.
+   *
+   * The theme tokens are animated: :root transitions --bg, --text-primary and
+   * the rest over 0.22s (see global.css). So for a moment after a switch,
+   * getComputedStyle hands back a colour part-way between the two themes —
+   * `rgb(67, 68, 66)` on the way from charcoal to paper. Redrawing once, on the
+   * change event, samples one of those in-between values and strands the canvas
+   * on it while the rest of the page carries on to the real colour. Alternating
+   * themes quickly stranded it somewhere different every time.
+   *
+   * Each change extends the repaint window instead of starting a second loop,
+   * so a burst of toggles coalesces into one continuous repaint that ends when
+   * the last transition does.
+   */
   function onThemeChange(fn: () => void) {
-    const SETTLE_MS = 340;
+    const SETTLE_MS = 340; // the 220ms token transition, plus headroom
     let raf = 0;
     let until = 0;
 
     const pump = () => {
       fn();
-      raf = performance.now() < until ? requestAnimationFrame(pump) : 0;
+      // Read the clock after fn(): a long frame shouldn't cost us the last
+      // repaint, which is the one that lands on the final colour.
+      if (performance.now() < until) {
+        raf = requestAnimationFrame(pump);
+      } else {
+        raf = 0;
+      }
     };
     const bump = () => {
       until = performance.now() + SETTLE_MS;
@@ -278,73 +248,25 @@ const shelf = await shelfItems();
     cleanups.push(() => el.removeEventListener(type, fn as EventListener));
   }
 
-  /** One hue per kind of entry, so a book and a newsletter don't read as the
-      same thing. Kept desaturated and warm enough to sit on the paper
-      background — the site's own two greens are only two values, which isn't
-      enough to carry a categorical scale. Each pair is [light theme, dark
-      theme]; the dark values are lifted, since the light ones go muddy on
-      charcoal. `tag` is deliberately the odd one out: neutral, so the tags
-      read as the connective tissue between entries rather than as content. */
-  const HUES: Record<string, [string, string]> = {
-    book: ['#2F7D5F', '#7FCBA9'],
-    essay: ['#B4552F', '#E08A5F'],
-    newsletter: ['#8A5FA0', '#C09AD4'],
-    link: ['#3E7191', '#8CB8D6'],
-    talk: ['#A07A22', '#DCB65F'],
-    film: ['#A24A6B', '#D690A8'],
-    tag: ['#8C8578', '#9C958A'],
-    other: ['#5C7A6B', '#93B3A2'],
-  };
+  function initShelf(root: HTMLElement) {
+    if (root.dataset.sgReady) return;
+    root.dataset.sgReady = '1';
 
-  type Item = { title: string; url: string | null; category: string | null; tags: string[] };
-  type Node = {
-    label: string;
-    kind: 'item' | 'tag';
-    /** Key into HUES — the entry's category, or 'tag'. */
-    hue: string;
-    url: string | null;
-    deg: number;
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    pinned: boolean;
-  };
-  type Rect = { x: number; y: number; w: number; h: number };
+    const canvas = root.querySelector('[data-shelf-canvas]') as HTMLCanvasElement | null;
+    const readout = root.querySelector('[data-shelf-readout]') as HTMLElement | null;
+    const legend = root.querySelector('[data-shelf-legend]') as HTMLElement | null;
+    if (!canvas || !readout || !legend) return;
 
-  // Invented, and only here to show the shape at a realistic size.
-  const SAMPLE: Item[] = [
-    { title: 'From Third World to First', url: null, category: 'Book', tags: ['governance', 'public policy', 'non-fiction'] },
-    { title: 'The Mom Test', url: null, category: 'Book', tags: ['customer discovery', 'startups', 'product'] },
-    { title: 'Poor Economics', url: null, category: 'Book', tags: ['development', 'economics', 'india'] },
-    { title: 'India After Gandhi', url: null, category: 'Book', tags: ['india', 'history', 'non-fiction'] },
-    { title: 'Seeing Like a State', url: null, category: 'Book', tags: ['governance', 'systems', 'public policy'] },
-    { title: 'Thinking in Systems', url: null, category: 'Book', tags: ['systems', 'economics'] },
-    { title: 'High Output Management', url: null, category: 'Book', tags: ['management', 'product'] },
-    { title: 'Working Backwards', url: null, category: 'Book', tags: ['product', 'management', 'startups'] },
-    { title: 'The Anarchy', url: null, category: 'Book', tags: ['india', 'history'] },
-    { title: 'Do Things That Don’t Scale', url: null, category: 'Link', tags: ['startups', 'product'] },
-    { title: 'An Uncertain Glory', url: null, category: 'Book', tags: ['india', 'development', 'public policy'] },
-    { title: 'A talk on state capacity', url: null, category: 'Talk', tags: ['governance', 'non-fiction'] },
-    { title: 'Gulzar on Loneliness', url: null, category: 'Essay', tags: ['writing', 'non-fiction'] },
-    { title: 'Bits about Money', url: null, category: 'Newsletter', tags: ['economics', 'systems', 'writing'] },
-  ];
-
-  function initShelf() {
-    const canvas = document.querySelector('[data-shelf-canvas]') as HTMLCanvasElement | null;
-    const readout = document.querySelector('[data-shelf-readout]') as HTMLElement | null;
-    const legend = document.querySelector('[data-shelf-legend]') as HTMLElement | null;
-    if (!canvas || !readout) return;
-
-    let real: Item[] = [];
+    let items: Item[] = [];
     try {
-      real = JSON.parse(canvas.dataset.shelfItems || '[]');
+      items = JSON.parse(canvas.dataset.shelfItems || '[]');
     } catch {
-      real = [];
+      items = [];
     }
 
     let colors = palette();
-    let showing: Item[] = [];
+    /** Which HUES branch the legend was last built against — see onThemeChange. */
+    let lastDark: boolean | null = null;
     let nodes: Node[] = [];
     let links: Array<[number, number]> = [];
     let adjacency: Set<number>[] = [];
@@ -353,7 +275,6 @@ const shelf = await shelfItems();
     let hover = -1;
     let drag = -1;
     let anim = 0;
-    // World → screen, recomputed each draw so the graph always fills the box.
     let view = { s: 1, ox: 0, oy: 0 };
 
     const radius = (n: Node) =>
@@ -375,12 +296,10 @@ const shelf = await shelfItems();
     };
     const hue = (key: string) => (HUES[key] || HUES.other)[isDark() ? 1 : 0];
 
-    /** Bipartite: a node per book, a node per tag, an edge for each tagging.
-        Books that share a tag end up pulled together by that tag alone, which
-        is the whole point — no adjacency is authored anywhere. */
-    function build(items: Item[]) {
+    /** Bipartite: a node per entry, a node per tag, an edge for each tagging.
+        Entries that share a tag are pulled together by that tag alone. */
+    function build() {
       const index = new Map<string, number>();
-      showing = items;
       nodes = [];
       links = [];
 
@@ -416,8 +335,8 @@ const shelf = await shelfItems();
         adjacency[b].add(a);
       });
 
-      // Deterministic seeding — books on an inner ellipse, tags on an outer one
-      // — so the layout settles the same way on every load instead of
+      // Deterministic seeding — entries on an inner ellipse, tags on an outer
+      // one — so the layout settles the same way on every load instead of
       // untangling from a different knot each time. Wider than tall, matching
       // the canvas, so it doesn't have to unfold sideways later.
       const itemCount = items.length;
@@ -440,30 +359,31 @@ const shelf = await shelfItems();
       settled = false;
       hover = -1;
       drag = -1;
-      readout!.textContent = `${itemCount} items · ${tagCount} tags · ${links.length} links`;
-      drawLegend(items);
+      readout!.textContent = `${itemCount} ${itemCount === 1 ? 'entry' : 'entries'} · ${tagCount} ${
+        tagCount === 1 ? 'tag' : 'tags'
+      } · ${links.length} links`;
+      drawLegend();
       run();
     }
 
-    /** Only the categories this dataset actually uses, in the order the
-        collection presents them — a fixed legend would list hues that aren't
-        on screen. */
-    function drawLegend(items: Item[]) {
-      if (!legend) return;
+    /** Only the categories this collection actually uses, in the order it
+        presents them — a fixed legend would list hues that aren't on screen. */
+    function drawLegend() {
       const keys: string[] = [];
       items.forEach((it) => {
         const k = hueKey(it.category);
         if (!keys.includes(k)) keys.push(k);
       });
-      keys.push('tag');
+      if (nodes.some((n) => n.kind === 'tag')) keys.push('tag');
 
-      legend.innerHTML = '';
+      lastDark = isDark();
+      legend!.innerHTML = '';
       keys.forEach((k) => {
         const li = document.createElement('li');
         if (k === 'tag') li.classList.add('is-tag');
         li.style.color = hue(k);
         const dot = document.createElement('span');
-        dot.className = 'swatch';
+        dot.className = 'sg-swatch';
         li.append(dot, document.createTextNode(k === 'other' ? 'uncategorised' : k));
         legend!.appendChild(li);
       });
@@ -473,17 +393,14 @@ const shelf = await shelfItems();
       const REP = 9000;
       const SPRING = 0.03;
       const REST = 92;
-      // Gravity is weaker horizontally, so the graph settles into the canvas's
-      // landscape box rather than a circle inside it — labels are wide, and the
-      // extra horizontal room is what stops them stacking up. Equilibrium
-      // spread on an axis goes as 1/sqrt(gravity), so dividing the x pull by
-      // aspect² lands the cloud at the canvas's own aspect ratio instead of an
-      // arbitrary hardcoded one.
+      // Equilibrium spread on an axis goes as 1/sqrt(gravity), so dividing the
+      // x pull by aspect² lands the cloud at the canvas's own aspect ratio.
+      // Labels are wide; that horizontal room is what stops them stacking up.
       const aspect = Math.max(1, canvas!.clientWidth / Math.max(1, canvas!.clientHeight));
       const GRAV_Y = 0.016;
       const GRAV_X = GRAV_Y / (aspect * aspect);
       const DAMP = 0.85;
-      // Books repel each other harder than tags do, which is what stops two
+      // Entries repel each other harder than tags do, which is what stops two
       // titles landing close enough that their labels fight.
       const ITEM_REP = 2.6;
 
@@ -545,16 +462,16 @@ const shelf = await shelfItems();
 
     /** Greedy label placement. Each label gets four candidate slots around its
         node; the first that clears everything already on the canvas wins, and a
-        label with no free slot is simply dropped rather than drawn on top of
-        another one. Books are placed first so a tag never displaces a title.
-        Whatever gets dropped is still reachable by hovering the node. */
+        label with no free slot is dropped rather than drawn on top of another.
+        Entries are placed first so a tag never displaces a title. Anything
+        dropped is still reachable by hovering the node. */
     function placeLabels(order: number[], occupied: Rect[], w: number, h: number) {
       const placed: Array<{ i: number; rect: Rect; align: CanvasTextAlign; tx: number }> = [];
 
       for (const i of order) {
         const n = nodes[i];
         const item = n.kind === 'item';
-        ctx.font = item ? `500 13px ${SERIF}` : `500 9.5px ${SANS}`;
+        ctx.font = item ? `600 13px ${SERIF}` : `500 9.5px ${SANS}`;
         const text = item ? n.label : n.label.toUpperCase();
         const tw = ctx.measureText(text).width;
         const th = item ? 15 : 11;
@@ -572,7 +489,6 @@ const shelf = await shelfItems();
         // A node near an edge can have all four slots hang off the canvas. For
         // an entry that matters — the titles are the content — so slide the
         // label back inside and take it if it's still clear of everything.
-        // Tags get no such rescue; a dropped tag is recoverable by hovering.
         if (item) {
           const cx2 = Math.max(8, Math.min(cx - tw / 2, w - 8 - tw));
           slots.push(
@@ -599,7 +515,15 @@ const shelf = await shelfItems();
       const h = canvas!.clientHeight;
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, w, h);
-      if (!nodes.length) return;
+
+      if (!nodes.length) {
+        ctx.fillStyle = withAlpha(colors.dim, 0.9);
+        ctx.font = `500 12px ${SANS}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Nothing on the shelf yet.', w / 2, h / 2);
+        return;
+      }
 
       // Fit the current cloud into the box, leaving a margin for labels.
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -624,13 +548,12 @@ const shelf = await shelfItems();
       const near = hover >= 0 ? adjacency[hover] : null;
       const lit = (i: number) => !near || i === hover || near.has(i);
 
-      // Links first, under everything.
       ctx.lineWidth = 1;
       for (const [a, b] of links) {
         const strong = near ? lit(a) && lit(b) : false;
         ctx.strokeStyle = near
           ? strong
-            ? withAlpha(colors.accent, 0.75)
+            ? withAlpha(hue(nodes[a].hue), 0.75)
             : withAlpha(colors.border, 0.3)
           : withAlpha(colors.border, 0.85);
         ctx.beginPath();
@@ -677,13 +600,11 @@ const shelf = await shelfItems();
         const item = n.kind === 'item';
         const text = item ? n.label : n.label.toUpperCase();
 
-        // Paint the page color behind the text so a label crossing a link
+        // Paint the page colour behind the text so a label crossing a link
         // stays readable without a box or a halo around it.
         ctx.fillStyle = colors.bg;
         ctx.fillRect(p.rect.x - 2, p.rect.y - 1, p.rect.w + 4, p.rect.h + 2);
 
-        // The label carries the node's colour too — on a graph this size the
-        // dot alone is too small to read a category off.
         ctx.font = item ? `600 13px ${SERIF}` : `500 9.5px ${SANS}`;
         ctx.fillStyle = withAlpha(hue(n.hue), (item ? 1 : 0.9) * fade);
         ctx.textAlign = p.align;
@@ -775,30 +696,31 @@ const shelf = await shelfItems();
       }
     });
 
-    document.querySelectorAll<HTMLButtonElement>('[data-shelf-mode]').forEach((btn) => {
-      on(btn, 'click', () => {
-        document
-          .querySelectorAll('[data-shelf-mode]')
-          .forEach((b) => b.classList.toggle('is-on', b === btn));
-        build(btn.dataset.shelfMode === 'sample' ? SAMPLE : real);
-      });
-    });
-
     onThemeChange(() => {
       colors = palette();
-      // Both the node hues and the legend swatches are theme-dependent, and
-      // the legend's are inline styles that nothing else would refresh.
-      drawLegend(showing);
+      // The legend's swatches are inline styles picked from HUES, which are two
+      // fixed values rather than animated tokens — so they only need rewriting
+      // when the light/dark branch actually flips, not on all ~20 frames of the
+      // transition. Rebuilding the list every frame made it flicker.
+      const dark = isDark();
+      if (dark !== lastDark) {
+        lastDark = dark;
+        drawLegend();
+      }
       draw();
     });
 
-    build(real);
+    build();
+  }
+
+  function init() {
+    document.querySelectorAll<HTMLElement>('[data-shelf]').forEach(initShelf);
   }
 
   function teardown() {
     while (cleanups.length) cleanups.pop()!();
   }
 
-  document.addEventListener('astro:page-load', initShelf);
+  document.addEventListener('astro:page-load', init);
   document.addEventListener('astro:before-swap', teardown);
 </script>

@@ -1,14 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getEntry, render } from 'astro:content';
+import { renderPage } from '../../lib/pages';
 // The interactive blocks the Lab body can embed as bare <XyzWidget /> tags —
 // see components/embeds/index.ts for why they're passed in rather than
 // imported by the MDX itself.
 import { embedComponents } from '../../components/embeds';
 
 // Editable in the CMS under "Lab page" (src/content/lab.mdx).
-const lab = await getEntry('pages', 'lab');
-const { Content } = await render(lab!);
+const { Content } = await renderPage('lab');
 ---
 
 <BaseLayout

@@ -6,6 +6,10 @@ const items = (await getCollection('recommendations')).sort(
   (a, b) => b.data.date.getTime() - a.data.date.getTime(),
 );
 
+// Entries store tag ids, not display text — resolve them against the `tags`
+// collection so the list shows "public policy" rather than "public-policy".
+const tagLabels = new Map((await getCollection('tags')).map((t) => [t.id, t.data.label]));
+
 // Render each item's rich note inline in the list.
 const rendered = await Promise.all(
   items.map(async (item) => ({ item, Content: (await render(item)).Content })),
@@ -39,7 +43,7 @@ const rendered = await Promise.all(
               item.data.tags && item.data.tags.length > 0 && (
                 <ul class="tags">
                   {item.data.tags.map((tag) => (
-                    <li>{tag}</li>
+                    <li>{tagLabels.get(tag) ?? tag}</li>
                   ))}
                 </ul>
               )

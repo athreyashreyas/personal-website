@@ -1,15 +1,16 @@
 ---
-// Glowing icon links for a project: the live site (external-link icon) and the
-// source repo (GitHub icon). Same hover glow as the footer's social icons.
-// Renders nothing when both links are absent.
+// Glowing icon links for a project: the live site (external-link icon), a
+// write-up hosted elsewhere (document icon), and the source repo (GitHub icon).
+// GitHub is always the rightmost. Same hover glow as the footer's social icons.
+// Renders nothing when every link is absent.
 interface Props {
-  links: { repo?: string; live?: string };
+  links: { repo?: string; live?: string; doc?: string };
 }
 const { links } = Astro.props;
 ---
 
 {
-  (links.live || links.repo) && (
+  (links.live || links.repo || links.doc) && (
     <span class="project-links">
       {links.live && (
         <a
@@ -26,6 +27,28 @@ const { links } = Astro.props;
           </svg>
         </a>
       )}
+      {links.doc && (
+        <a
+          class="icon-link"
+          href={links.doc}
+          target="_blank"
+          rel="noopener"
+          aria-label="Full write-up (opens in a new tab)"
+          title="Write-up"
+        >
+          {/* A page with two lines of text. The lines are holes punched through
+              the filled silhouette by the even-odd rule, so the icon stays a
+              single-colour glyph like the other two. */}
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M6 2h7.172a2 2 0 0 1 1.414.586l4.828 4.828A2 2 0 0 1 20 8.828V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm2 9a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2H8Zm0 4a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2H8Z"
+            />
+          </svg>
+        </a>
+      )}
+      {/* GitHub stays last, always — any new link type goes above this one. */}
       {links.repo && (
         <a
           class="icon-link"

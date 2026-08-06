@@ -4,53 +4,44 @@ description: >-
   A local-first attendance tracker that tells you exactly how many classes you
   can still afford to miss.
 status: active
-date: 2025-04-10
+date: 2026-06-15
 links:
   repo: https://github.com/athreyashreyas/attendance-tracker
   live: https://attendance-tracker-two-chi.vercel.app/
 ---
 ## What is it?
 
-You'll be hard pressed to find a university or class attending person who hasn't wondered about their attendance percentage.&#x20;
+You'll be hard pressed to find a university or class attending person who hasn't wondered about their attendance percentage and whether they can afford to miss the next class. It is very important to make that final cut for attendance and most people don't have a good system helping them with that.
 
-You open Attend to answer one question: am I still fine to skip tomorrow? The dashboard answers it per class. Each card gives you the percentage as a ring and, next to it, a plain-language badge that has already done the projection for you: *can miss 3 of 8 left*, *attend all 4 left*, or a red *below 75%* when you've
-slipped under the line.
+Attend is a simple app that helps you track all your classes and your schedule via a beautiful and clean UX.
+
+You open Attend to answer one question: How many more classes can I skip? Each card gives you the percentage as a ring and, next to it, a plain-language badge that has already done the projection for you.
 
 <AttendStill />
 
-That badge is the whole point. Your current percentage is history; what actually
-matters is the number you'll finish the term on. Attend counts the sessions still
-to come, works out the best and worst you can land on, and says it in words, so
-you're not doing arithmetic in your head at the back of a lecture hall.
+The badge tells you everything you need to know. Your current percentage is already calculated and attend knows that what actually matters is the number you'll finish the term on. The app counts the sessions still to come, works out the best and worst you can land on, and says it in simple words so you're not doing arithmetic in your head at the back of a lecture hall.
 
 ## Marking, in the corridor
 
-Marking is meant to happen the moment a class ends, so it gets its own flow. Tap
-the "mark today" banner and Attend hands you one class at a time: the name, the
-time, and two big buttons. Present or Absent, then the next one slides in. If a
-class got cancelled you say so and it drops out of the maths instead of counting
-against you.
+Marking is meant to happen the moment a class ends, so it gets a beautiful flow that show up as flashcards which you can easily mark. Tap the "mark today" banner and Attend hands you one class at a time: the name, the time, and two big buttons. Present or Absent, then the next one slides in. If a class got cancelled, you say so and it drops out of the maths instead of counting against you.
 
 <AttendQuickMarkStill />
 
-## The class is the unit
+The best part about attend is that it's calculation is dynamic and updates every time you change variables like course duration, extra classes, class cancellations, updating previous attendance logs and much more. No more worries&#x20;
 
-The decision that shaped everything is that the class is the unit, not the
-semester. A degree subject can sit under a semester, but a dance class or a hobby
-stands on its own, which is why the same app fits a university timetable and a
-twice-a-week pottery class. Most attendance apps get this wrong by assuming
-everyone's life divides neatly into terms.
+## Design philosophy and stack details
 
-Under the hood it's local-first: reads come straight from Dexie (IndexedDB), so
-it opens instantly and works with no signal, while edits sync to your own
-Supabase account in the background. Vite, React and strict TypeScript, with a
-sidebar rail on iPad and a bottom tab bar on phones. It installs to the home
-screen and works offline by default, because the whole point is marking a class
-as you walk out of the room.
+Attend is not just for university students so while the app does have the option for semester based logic, classes are the base unit and can be added individually (this helps for classes like language learning, dance etc. as well).
 
-## On your home screen
+It is built to be local-first: reads come straight from Dexie (IndexedDB), so it opens instantly and works offline as well with no signal. Edits later sync to your own Supabase account in the background.&#x20;
 
+The other part of the stack includes Vite, React and strict TypeScript. It installs to the home screen and works offline by default.
+
+## Go ahead and try it!
+
+Open the link at the top of the page: \
 On iPhone, open the link in Safari, tap the Share icon, then **Add to Home
-Screen**. On Android, open it in Chrome, tap the **⋮** menu, then **Install
-app** (or **Add to Home Screen**, depending on the browser). On a computer
-there's nothing to set up — it just runs in the browser.
+Screen**. \
+On Android, open it in Chrome, tap the **⋮** menu, then **Install
+app** (or **Add to Home Screen**, depending on the browser). \
+On a computer there's nothing to set up, you can just run it in your browser.

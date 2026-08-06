@@ -1,0 +1,292 @@
+---
+// LLM Inference Benchmark, the negative result: once a stream is running, the
+// two platforms are the same machine. Every scenario's mean time per output
+// token from report/REPORT.md (run ba442d8d, table "Latency Metrics") plotted on
+// one axis — ten points, all inside a 2 ms band.
+//
+// A strip plot rather than the report's bar chart: bars invite you to compare
+// heights, and the finding here is that there is nothing to compare. Same fixed
+// light interior and same two-series palette as the other two figures in this
+// write-up, so the set reads as one.
+import StillFrame from './StillFrame.astro';
+
+const SS = '#0A9877'; // Simplismart
+const FW = '#BE6F14'; // Fireworks AI
+const MAX = 7; // ms. Axis top
+const TICKS = [0, 2, 4, 6];
+
+const rows = [
+  {
+    name: 'Simplismart',
+    color: SS,
+    points: [
+      { id: 'E01', v: 4.19 },
+      { id: 'E02', v: 4.37 },
+      { id: 'E03', v: 4.59 },
+      { id: 'E04', v: 4.97 },
+      { id: 'E05', v: 4.55 },
+    ],
+  },
+  {
+    name: 'Fireworks AI',
+    color: FW,
+    points: [
+      { id: 'E06', v: 5.28 },
+      { id: 'E07', v: 4.59 },
+      { id: 'E08', v: 6.16 },
+      { id: 'E09', v: 4.77 },
+      { id: 'E10', v: 5.14 },
+    ],
+  },
+];
+
+const at = (v: number) => `${(v / MAX) * 100}%`;
+const spans = rows.map((r) => {
+  const vs = r.points.map((p) => p.v);
+  const lo = Math.min(...vs);
+  const hi = Math.max(...vs);
+  return { ...r, lo, hi, left: at(lo), width: `${((hi - lo) / MAX) * 100}%` };
+});
+
+// The comparison that gives the axis meaning: at concurrency 1 the two
+// platforms are 879 ms apart on time to first token (145 vs 1,024). On this
+// axis that gap would run ~126 chart widths off the right edge.
+const TTFT_GAP_WIDTHS = Math.round(879 / MAX);
+---
+
+<StillFrame
+  variant="browser"
+  url="report/REPORT.md"
+  label="Mean time per output token, every scenario. Lower is better, but nothing here is far apart"
+>
+  <div class="tp">
+    <header class="tp-head">
+      <p class="tp-k">Mean time per output token</p>
+      <h4 class="tp-t">Once the stream is running, it's the same machine</h4>
+      <ul class="tp-legend">
+        <li><span class="sw" style={`background:${SS}`} />Simplismart</li>
+        <li><span class="sw" style={`background:${FW}`} />Fireworks AI</li>
+      </ul>
+    </header>
+
+    <div class="tp-plot">
+      {
+        spans.map((r) => (
+          <div class="tp-row">
+            <p class="tp-name">{r.name}</p>
+            <div class="tp-track">
+              {TICKS.map((t) => (
+                <span class="tp-grid" style={`left:${at(t)}`} />
+              ))}
+              {/* The band each platform's five scenarios span, so the overlap
+                  between the two is visible rather than inferred. */}
+              <span
+                class="tp-band"
+                style={`left:${r.left};width:${r.width};background:${r.color}`}
+              />
+              {r.points.map((p) => (
+                <span
+                  class="tp-dot"
+                  style={`left:${at(p.v)};background:${r.color}`}
+                  title={`${p.id}: ${p.v.toFixed(2)} ms`}
+                />
+              ))}
+            </div>
+            <p class="tp-range">
+              {r.lo.toFixed(2)}–{r.hi.toFixed(2)}<span class="tp-unit">ms</span>
+            </p>
+          </div>
+        ))
+      }
+
+      <div class="tp-axis">
+        <div class="tp-axis-track">
+          {TICKS.map((t) => (
+            <span class="tp-tick" style={`left:${at(t)}`}>
+              {t}
+            </span>
+          ))}
+        </div>
+        <p class="tp-axis-k">ms per token</p>
+      </div>
+    </div>
+
+    <p class="tp-foot">
+      Ten scenarios, five per platform, every one between 4.19 and 6.16 ms. For
+      scale: the {' '}
+      <strong>time-to-first-token gap</strong> at one request in flight is 879 ms which
+      about {TTFT_GAP_WIDTHS} times this entire axis, off the right edge.
+    </p>
+  </div>
+</StillFrame>
+
+<style>
+  .tp {
+    background: #fcfcfb;
+    color: #2b2420;
+    padding: 20px 22px 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .tp-head {
+    margin-bottom: 22px;
+  }
+  .tp-k {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #857d6f;
+  }
+  /* Explicit colour: the page's global heading rule paints h1–h4 in the site
+     accent, which is tuned for the parchment background and washes out against
+     this figure's fixed light surface. */
+  .tp-t {
+    margin: 3px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.25;
+    color: #2b2420;
+  }
+
+  .tp-legend {
+    display: flex;
+    gap: 1rem;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 11.5px;
+    color: #6b6558;
+  }
+  .tp-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sw {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  .tp-row {
+    display: grid;
+    grid-template-columns: 74px 1fr 74px;
+    align-items: center;
+    gap: 12px;
+  }
+  .tp-row + .tp-row {
+    margin-top: 14px;
+  }
+  .tp-name {
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #2b2420;
+  }
+  .tp-range {
+    margin: 0;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: #6b6558;
+    white-space: nowrap;
+  }
+  .tp-unit {
+    margin-left: 3px;
+    color: #a09889;
+  }
+
+  .tp-track {
+    position: relative;
+    height: 26px;
+  }
+  .tp-grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #eae5d9;
+  }
+  .tp-band {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    margin-top: -2px;
+    border-radius: 2px;
+    opacity: 0.22;
+  }
+  /* A ring in the surface colour so two near-identical values still read as two
+     points rather than one smudge. */
+  .tp-dot {
+    position: absolute;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px #fcfcfb;
+  }
+
+  .tp-axis {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: 74px 1fr 74px;
+    gap: 12px;
+  }
+  .tp-axis-track {
+    position: relative;
+    grid-column: 2;
+    height: 14px;
+    border-top: 1px solid #eae5d9;
+  }
+  .tp-tick {
+    position: absolute;
+    top: 2px;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    color: #a09889;
+  }
+  .tp-axis-k {
+    grid-column: 3;
+    margin: 0;
+    font-size: 10px;
+    color: #a09889;
+    text-align: right;
+  }
+
+  .tp-foot {
+    margin: 16px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid #eae5d9;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: #a09889;
+  }
+  .tp-foot strong {
+    font-weight: 600;
+    color: #6b6558;
+  }
+
+  @media (max-width: 520px) {
+    .tp {
+      padding: 16px 15px 13px;
+    }
+    .tp-t {
+      font-size: 15px;
+    }
+    .tp-row,
+    .tp-axis {
+      grid-template-columns: 62px 1fr 60px;
+      gap: 8px;
+    }
+    .tp-name,
+    .tp-range {
+      font-size: 10.5px;
+    }
+  }
+</style>

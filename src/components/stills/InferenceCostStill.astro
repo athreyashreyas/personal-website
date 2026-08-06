@@ -1,0 +1,201 @@
+---
+// LLM Inference Benchmark, the cost finding: the number you shop on and the
+// number you pay are not the same number. Both panels are from
+// report/REPORT.md (run ba442d8d, "Cost"): list price per million output
+// tokens, and total spend across deploy → benchmark → teardown.
+//
+// Two panels on deliberately separate scales, because the point is that the
+// ratio changes between them — 2× on the rate card, 2% on the bill. A single
+// shared axis would flatten the left panel to nothing and hide it.
+import StillFrame from './StillFrame.astro';
+
+const SS = '#0A9877'; // Simplismart
+const FW = '#BE6F14'; // Fireworks AI
+
+const panels = [
+  {
+    key: 'What you compare',
+    title: 'Per million output tokens',
+    max: 0.2,
+    unit: '$',
+    bars: [
+      { name: 'Simplismart', v: 0.1, color: SS, fmt: '$0.10' },
+      { name: 'Fireworks AI', v: 0.2, color: FW, fmt: '$0.20' },
+    ],
+    verdict: 'Fireworks costs 2× as much',
+  },
+  {
+    key: 'What you pay',
+    title: 'Total spend, this benchmark',
+    max: 2,
+    unit: '$',
+    bars: [
+      { name: 'Simplismart', v: 1.73, color: SS, fmt: '$1.73' },
+      { name: 'Fireworks AI', v: 1.7, color: FW, fmt: '$1.70' },
+    ],
+    verdict: 'The bills land within 2%',
+  },
+];
+
+const pct = (v: number, max: number) => `${(v / max) * 100}%`;
+---
+
+<StillFrame
+  variant="browser"
+  url="report/REPORT.md"
+  label="Token price against actual spend: on a dedicated endpoint the rate card is not the bill"
+>
+  <div class="cst">
+    <header class="cst-head">
+      <p class="cst-k">Cost</p>
+      <h4 class="cst-t">2× on the rate card, 2% on the bill</h4>
+    </header>
+
+    <div class="cst-panels">
+      {
+        panels.map((p) => (
+          <section class="cst-panel">
+            <p class="cst-panel-k">{p.key}</p>
+            <p class="cst-panel-t">{p.title}</p>
+            <div class="cst-bars">
+              {p.bars.map((b) => (
+                <div class="cst-row">
+                  <p class="cst-name">{b.name}</p>
+                  <div class="cst-bar">
+                    <span
+                      class="cst-fill"
+                      style={`width:${pct(b.v, p.max)};background:${b.color}`}
+                      title={`${b.name}: ${b.fmt}`}
+                    />
+                  </div>
+                  <p class="cst-val">{b.fmt}</p>
+                </div>
+              ))}
+            </div>
+            <p class="cst-verdict">{p.verdict}</p>
+          </section>
+        ))
+      }
+    </div>
+
+    <p class="cst-foot">
+      Both endpoints were a dedicated H100, live for well under an hour each.
+      GPU-hours dominate the bill at this scale, so token volume — a fraction of a
+      dollar either way — barely registers. Panels are on separate scales.
+    </p>
+  </div>
+</StillFrame>
+
+<style>
+  .cst {
+    background: #fcfcfb;
+    color: #2b2420;
+    padding: 20px 22px 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .cst-head {
+    margin-bottom: 20px;
+  }
+  .cst-k {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #857d6f;
+  }
+  /* Explicit colour: the page's global heading rule paints h1–h4 in the site
+     accent, which is tuned for the parchment background and washes out against
+     this figure's fixed light surface. */
+  .cst-t {
+    margin: 3px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.25;
+    color: #2b2420;
+  }
+
+  .cst-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 26px;
+  }
+
+  .cst-panel-k {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a09889;
+  }
+  .cst-panel-t {
+    margin: 2px 0 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #2b2420;
+  }
+
+  .cst-row + .cst-row {
+    margin-top: 8px;
+  }
+  .cst-name {
+    margin: 0 0 3px;
+    font-size: 10.5px;
+    color: #6b6558;
+  }
+  /* Track shows the panel's full scale so a bar's emptiness is legible, not
+     just its fill. */
+  .cst-bar {
+    display: block;
+    height: 11px;
+    background: #f1ede3;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .cst-fill {
+    display: block;
+    height: 100%;
+    border-radius: 0 2px 2px 0;
+  }
+  .cst-val {
+    margin: 4px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #2b2420;
+  }
+
+  .cst-verdict {
+    margin: 12px 0 0;
+    padding-top: 9px;
+    border-top: 1px solid #eae5d9;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #6b6558;
+  }
+
+  .cst-foot {
+    margin: 18px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid #eae5d9;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: #a09889;
+  }
+
+  @media (max-width: 520px) {
+    .cst {
+      padding: 16px 15px 13px;
+    }
+    .cst-t {
+      font-size: 15px;
+    }
+    .cst-panels {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+</style>

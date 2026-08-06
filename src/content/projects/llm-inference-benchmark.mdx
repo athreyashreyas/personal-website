@@ -4,111 +4,83 @@ description: >-
   A head-to-head benchmark of two LLM inference platforms, same model and same
   GPU, plus a log of everything that broke on the way there.
 status: complete
-date: 2026-06-08
+date: 2026-08-08
 links:
   repo: https://github.com/athreyashreyas/llm-inference-benchmark
+  doc: >-
+    https://docs.google.com/document/d/1sUg40DjAYThSLXNe81Z1O5-8mU2X9dORkwAiDrrj0D8/edit?tab=t.0
 ---
-I wanted to know what actually separates one LLM inference platform from another
-once you get past the pricing page. Everybody quotes tokens per second. Almost
-nobody quotes the number you feel when you're sitting in front of a chat box
-waiting for something to appear.
+## Background
 
-So I picked two platforms, [Simplismart](https://simplismart.ai) and
-[Fireworks AI](https://fireworks.ai), put the same model on the same class of GPU
-on both, pointed the same client code at them, and ran ten scenarios in one
-sitting. Gemma 3 4B Instruct, a dedicated H100 each, 130 requests, everything
-torn down inside the hour.
+I recently got the chance to interview at one of the best ML inferencing platforms in the world [(Simplismart)](https://simplismart.ai/) and the experience made me very curious about the inference stack that is responsible for how the world uses AI on a daily basis. \
+\
+Ultimately I ended up doing a LLM inferencing benchmarking exercise across the top inference providers as part of the interview process, and the experience gave me many insights which I wanted to share here.\
+\
+ML inferencing is ultimately about designing and using systems that vend AI output to downstream consumers. As we think about it more, it becomes clear that inferencing analytics is a very in demand vertical of the AI stack right now as we see companies scurrying across the board to maximise their token efficiencies and costs.&#x20;
 
-<InferenceTtftStill />
+Companies like [Simplismart](https://www.simplismart.ai/) and [Fireworks](https://fireworks.ai/) are at the forefront of this race. MLOps has become a very common use case for all businesses and these companies promise to abstract the details for this problem while providing maximum reliability and customisability with all the latest and popular open source models.
+
+So what separates one LLM inference platform from another once you get past the pricing page? Everybody quotes tokens per second but what does that even mean or feel like, and is that the only way to measure your inference performance and how it trickles down to the customer experience?
+
+To pick all this apart, I used the free credits given by [Simplismart](https://simplismart.ai) and [Fireworks AI](https://fireworks.ai), put the same model *(Gemma 3 4B Instruct)* on the same class of GPU *(a dedicated H100 endpoint)* on both, pointed the same client code at them, and ran ten scenarios in one sitting: 130 requests across different prompt types, sizes and situations with everything torn down inside the hour.
 
 ## What the numbers said
 
-The headline is that 7× gap in time to first token, and the interesting part is
-where it *isn't*. Time per output token, meaning the speed of the stream once it
-starts, came out at 4.2 to 5.0 ms on one platform and 4.6 to 6.2 ms on the other.
-Basically identical, which makes sense: same weights, same silicon. Steady-state
-generation is a property of the GPU.
+<InferenceTtftStill />
 
-Everything separating the two lives in the moment before the first token. Request
-routing, queueing, scheduling, whatever each platform's serving layer does before
-it hands the prompt to the model. One of them had a near-constant \~1,000 ms of it.
-That's the number that decides whether your product feels alive, and it's the one
-you can't read off anyone's pricing page.
+**The headliner** of the analysis is a 7× gap in time to first token (TTFT) (for a single request) where Simplismart blows Fireworks out of the water. The time per output token was basically identical between both platforms, which makes sense as the same weights alongside the same chip will result in the same steady-state generation from GPU. TTFT is thus a great indicator on the specific performance of the host inference engine.
 
-<LatencyWidget
-  aTtft={150}
-  bTtft={1150}
-  aTps={220}
-  bTps={200}
-  aLabel="Platform A"
-  bLabel="Platform B"
-  caption="Replays the two measured profiles: near-identical stream speed, about a second of difference before the first token. Not a live model call — drag either slider to feel the change."
-/>
+<InferenceTpotStill />
 
-The second finding was that I'd have got the ranking wrong if I'd stopped at one
+As you can see above, once the tokens start flowing for the output, there's not much separating the two platforms. \
+\
+So what could this difference in TTFT mean for an end consumer? Run the widget below to visually feel the difference. I encourage you to also try playing around with the numbers below to see how a bad inferencing setup can manifest into consumer frustration:
+
+<LatencyWidget aTtft={150} bTtft={1150} aTps={210} bTps={210} aLabel="Platform A" bLabel="Platform B" caption="Replays the two measured profiles. Drag either slider and run to feel the change." />
+
+**The** **second finding** was that I'd have got the ranking wrong if I'd stopped at one
 concurrency level.
 
 <InferenceThroughputStill />
 
-Simplismart wins comfortably at one and five requests in flight. At ten, with
-longer generations, Fireworks overtakes it, batching more efficiently once its
-fixed overhead is amortised across more simultaneous requests. Any single
-"tokens/sec" comparison would have picked a winner and been wrong for half the
-workloads people actually run.
+Simplismart wins comfortably at one and five requests in flight. At ten, with longer generations, Fireworks overtakes it, batching more efficiently once its fixed overhead is amortised across more simultaneous requests. That makes things more complicated than before. Since most output token requests are batched in real life scenarios, Fireworks now makes a strong case for choosing it over Simplismart.
 
-Third: on dedicated endpoints, per-token pricing barely matters. Fireworks costs
-twice as much per token and my total bill came out within 2% of the other
-platform's, because GPU-hours dominate everything at this scale. The cost lever
-isn't the rate card, it's whether you remember to run teardown.
+**Third:** on dedicated endpoints, the per-token pricing doesn't matter as much as the time you choose to reserve GPUs for yourself. Fireworks costs twice as much per token and my total bill came out within 2% of Simplismart's because GPU-hours dominate everything at this scale and I ran good teardown scripts which stopped provisioning GPUs for me on both platforms the moment I finished my test. So having good reserving logic seems to pay huge dividends when designing how you want to do your inferencing.
 
-## The half I didn't plan for
+<InferenceCostStill />
 
-The rule I set myself was that everything had to be attempted from code first, with
-no clicking through a dashboard unless the API had already refused. I handed the
-whole build to Claude Code and gave it the same rule.
+## The things I learnt along the way
 
-That turned out to be the actual experiment. An agent can only read documentation
-and call endpoints, so it finds every place where a platform quietly assumes a
-human with a browser. Thirteen of those went into the log, and the pattern across
-them is more interesting than any one entry:
+I tried setting up a purely agentic pipeline to perform and collect results for this experiment, so doing that and encountering the roadblocks in the process turned out to be a key learning area as well. My agent surfed the web, scraped web pages and scoured the platforms' documentation on how to proceed and set this all up.&#x20;
 
-* A model listed on the public pricing page that isn't in the marketplace at all,
-  so the config you write from the docs fails on first contact.
-* A GPU listed as valid in the SDK enum, with zero quota on the account. The only
-  way to discover that is to attempt the deploy and read the 400.
-* A deployment API that returned `500` and *created the deployment anyway*. Live,
-  healthy, and with no ID anywhere in the error response. Recovering it meant
-  knowing to call `list_deployments()`, which nothing tells you.
-* An inference endpoint that looks like a drop-in OpenAI URL but silently needs a
-  non-standard `id` header on every call. I found it buried in a `curl` string
-  inside a deployment-detail payload.
-* Dedicated GPU deployment gated behind having a card on file, separately from the
-  free credit balance, and with no error saying so. It just fails during
-  provisioning like a transient platform issue. That one cost me the longest,
-  because "we have credits, why is this failing" isn't a question an agent knows
-  to ask. I had to go look at a billing page.
+I also instructed it to create logs of all friction points and document areas where it could not proceed on its own to understand what is missing from these platforms and their documentation.\
+\
+Thirteen of those friction points went into a log, and the pattern across them is very interesting as well:
 
-None of these are bugs exactly. They're places where the documented surface and
-the real surface have drifted apart, and you only find them by walking into them.
-Every entry in the log has what I hit, what it cost, and what I'd change if I
-owned the product.
+* Agentic SEO is a real asset for any company which wishes to be AI native. Adding linked markdown files and good XML skeletons really help agents discover, use and suggest your platform to unknown customers.
+* The agentic experience uncovered gaps in the Simplismart's documentation where they did not explicitly mention the GPU types they have or how to search for them so that they can be used for other key SDK functions.
+* Even though I had free credits from registering on their platform, Fireworks had gated custom GPU deployments behind a "Add Credit Card" paywall. That didn't make any sense and it cost me some churn because "we have credits, why is this failing" isn't a question an agent knows to ask or answer unless it has been explicitly trained. I had to go look at the billing page.
 
-## What I'd actually tell someone
+None of these are bugs exactly. They're cases where the documented surface and the real surface have drifted apart, and you only find them by using their services and APIs from scratch. Ironically, using agents exclusively for this project gave me insights on how these companies can improve the human facing product experience.
 
-If you're building something interactive, anything where a person is sitting there
-waiting, shop on time to first token and cold start, and test at *your*
-concurrency rather than at one request. If you're running batch work, throughput at
-high concurrency is your number and the rankings may well invert. And on dedicated
-endpoints, watch GPU-hours rather than token prices, because that's where the money
-actually goes.
+## What you should take away from this
 
-What I came away with, though, is a mental model for where latency comes from in a
-served model: which parts of it a vendor can change, and which parts are just
-physics. That was the point of doing it.
+1. It's worthwhile to learn the ins and outs of inferencing in today's world. That includes knowing the tradeoffs involved in using different kinds of GPUs to use, MLOps frameworks like vLLM and optimisation techniques like quantisation.&#x20;
+2. You should seriously consider setting up your inference analytics stack and being able to adapt it rapidly. Ever decision after that becomes so much easier for any use case (for example: How well are we using our enterprise budget when comparing token quality vs quantity? Will building this feature for our AI product kill our speed/budget? Is the Ops pipeline for our AI product setup effectively?)
+3. Everybody knows data analytics and SQL but the same will eventually apply for inference analytics in a few years. It won't be surprising to see data and business intelligence engineers pick this up as part of their job (or have new job roles open up for this).&#x20;
+4. Conducting experiments researching such things has never been easier. I did all this using claude code and I learnt much more than I would have than if I did it manually reading documentation.&#x20;
+5. Open source models are actually very cool and versatile. We all use ChatGPT and Claude, but you should consider purchasing your next machine (or setting up your current one) so that it can atleast run \~10B parameter model via tools like [Openclaw](https://github.com/openclaw/openclaw), [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) and [Ollama](https://ollama.com/).&#x20;
+
+## Stack
 
 *Python, asyncio, the OpenAI streaming client, pandas and matplotlib for the
 report, the Simplismart SDK and the Fireworks REST API for deployment. Built with
 Claude Code, with a
 [full write-up](https://github.com/athreyashreyas/llm-inference-benchmark/blob/main/report/REPORT.md),
-a [friction log](https://github.com/athreyashreyas/llm-inference-benchmark/blob/main/AGENTIC_LOG.md),
-and a second independent run to check the first one wasn't a fluke.*
+a [friction log](https://github.com/athreyashreyas/llm-inference-benchmark/blob/main/AGENTIC_LOG.md), and a second independent run to check the first one's accuracy.*
+
+## Check it out!
+
+You can reproduce the results for yourself by following the [reproduction guide](https://github.com/athreyashreyas/llm-inference-benchmark/#reproduction-guide) given in the repo link at the top of this page.
+
+Happy to hear thoughts and critical feedback on this. Please feel free to write to [*athreya.shreyas@gmail.com*](mailto:athreya.shreyas@gmail.com).&#x20;

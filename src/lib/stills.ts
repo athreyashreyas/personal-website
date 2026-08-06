@@ -16,10 +16,13 @@
 export const STILL_LABELS: Record<string, string> = {
   AttendQuickMarkStill: 'Attend — quick-mark still',
   AttendStill: 'Attend still',
+  HarmonyInsightsStill: 'Harmony — insights still',
   HarmonyStill: 'Harmony still',
   HarmonyTodayStill: 'Harmony — today still',
   HisaabStill: 'Hisaab still',
+  InferenceCostStill: 'Inference benchmark — cost chart',
   InferenceThroughputStill: 'Inference benchmark — throughput chart',
+  InferenceTpotStill: 'Inference benchmark — per-token latency chart',
   InferenceTtftStill: 'Inference benchmark — TTFT chart',
   NilaCheckinStill: 'Nila — check-in still',
   NilaInsightsStill: 'Nila — insights still',

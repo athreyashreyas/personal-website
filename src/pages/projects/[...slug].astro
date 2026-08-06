@@ -124,8 +124,12 @@ const { title, description, status, links } = project.data;
     gap: 1.1rem;
   }
 
-  .prose :global(h2),
-  .prose :global(h3) {
+  /* Section headings in the write-up take the accent — but a still is a
+     recreation of another app's screen and carries that app's palette, so its
+     headings have to be left alone. Without the :not(), this rule outranks the
+     stills' own scoped title rules and paints their in-app headings green. */
+  .prose :global(h2:not(.still h2)),
+  .prose :global(h3:not(.still h3)) {
     color: var(--accent-heading);
   }
   .prose :global(img) {

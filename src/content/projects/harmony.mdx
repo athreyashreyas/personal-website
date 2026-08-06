@@ -1,55 +1,65 @@
 ---
 title: Harmony
-description: A habit tracker built on the premise that your habits are how you return to yourself, not tasks you're failing at.
+description: >-
+  A habit tracker built on the premise that your habits are how you return to
+  yourself, not tasks you're failing at.
 status: active
-date: 2025-05-01
+date: 2026-07-03
 links:
-  {
-    repo: 'https://github.com/athreyashreyas/harmony',
-    live: 'https://harmony-8wn.pages.dev/',
-  }
+  repo: https://github.com/athreyashreyas/harmony
+  live: https://harmony-8wn.pages.dev/
 ---
+## What is it?
 
-Most habit trackers run on shame: a streak you can break, a plant that dies if
-you skip a day, a score that ticks down. Harmony has none of that. It opens on
-the Bloom, your whole week drawn as one flower with a petal for each area of your
-life. Tend an area and its petal grows outward; leave it and the petal quietly
-eases back. It reads a rolling two-week window, so one missed day barely moves
-anything.
+Most habit trackers run on a penalty or shame based system: you have a streak you can break, a plant that dies if you skip a day, a score that ticks down etc. \
+\
+But what do we want a habit to ultimately be? When I asked that question it was clear that a great habit is just an extension of your whole, happy and harmonious self. Where you do the habit because that is just who you want to be.&#x20;
+
+That is what harmony is about. It is a habit tracking app that allows you to design your life into areas that you choose and define. The areas manifest as petals/sections of a bloom circle which need to be filled by your doing/ticking of the habit.&#x20;
 
 <HarmonyStill />
 
-There's no number going down anywhere. A petal's length is just how tended that
-area has been lately, weighted by how much it matters to you, so the flower leans
-on its own toward the parts of life you said you cared about most.
+What makes harmony special is your ability to design, prioritise and see your life whole as you're always supposed to. Areas can be ordered in terms of their priority/importance to you and habits inside those areas can be arranged similarly. The more important an area is to you, the more times you have to log that habit for the bloom wheel to fill proportionate to less important habits which fill the bloom easier.&#x20;
+
+Harmony believes that the ultimate goal while using it should be to have a full bloom circle instead of narrowly focussing on one thing. It also believes that habits are a continued extension of your self and that is why the bloom wheel gets populated on a two week trailing window that gets updated daily.\
+\
+A single day where you don't do much doesn't throw your bloom progress off too much, and at the same time it encourage you to be consistent without a end date.&#x20;
 
 ## A day at a time
 
 The daily view is the other half of it. Each habit is a round check with its
-area's colour sitting underneath, and tapping it feeds the matching petal. The
-habits you want *less* of live in their own "ease off" section as Tugs. You never
-schedule those; you just note them on the days they happen, and they gently pull
-an area back, so a week honestly shows both the lift and the drag.
+area's colour sitting underneath, and tapping it feeds the matching petal.&#x20;
+
+While harmony aims to be holistic and kind, it always strives to be accountable and honest. Habits you want to ease off are called "tugs" compared to the "pulls" of regular habits. Tugs can be added optionally to the app and you can use them to keep yourself accountable and log the honest picture.&#x20;
 
 <HarmonyTodayStill />
 
+## Data to back it all up
+
+Harmony gives you an extensive insights section containing detailed breakdowns on various areas, habits and trends over the weeks, months and years.&#x20;
+
+I've designed the insights tab to be helpful, kind, illustrative and rich in all the data that you could ask about your habits and life.&#x20;
+
+You have the ability to slice and dice the metrics however you want (by time, area, habits etc.) so that you can see exactly what you wish to.&#x20;
+
+<HarmonyInsightsStill />
+
 ## Under the hood
 
-Harmony is a PWA: React and TypeScript on Vite, with Dexie (IndexedDB) as the
-source of truth on each device and writes mirrored to Supabase, queued in a
-durable offline outbox that flushes on reconnect. Push notifications come from a
-separate Cloudflare Worker that signs its own VAPID payloads with the Web Crypto
-API, no Node crypto anywhere.
+*Built with React and TypeScript on Vite, with Dexie (IndexedDB) as the source of truth on each device and writes mirrored to Supabase, queued in a durable offline outbox that flushes on reconnect.*&#x20;
 
-The one decision I'd defend hardest is keeping the scheduling and drift engine in
-a single shared package, used by both the app and the push worker. The rule that
-decides whether a habit is due today has to be byte-identical in both places, or
-reminders quietly fire on the wrong days. Duplicating it would have been faster
-to write and a nightmare to trust.
+*Push notifications come from a separate Cloudflare Worker that signs its own VAPID payloads with the Web Crypto API.*
 
-## On your home screen
+## Use it!
+
+Click the link at the top of the page:&#x20;
 
 On iPhone, open the link in Safari, tap the Share icon, then **Add to Home
-Screen**. On Android, open it in Chrome, tap the **⋮** menu, then **Install
-app** (or **Add to Home Screen**, depending on the browser). On a computer
-there's nothing to set up — it just runs in the browser.
+Screen**.&#x20;
+
+On Android, open it in Chrome, tap the **⋮** menu, then **Install
+app** (or **Add to Home Screen**, depending on the browser).&#x20;
+
+On a computer there's nothing to set up and it runs on the browser.
+
+Feedback and feature requests are highly encouraged, please write to me at [*athreya.shreyas@gmail.com*](mailto:athreya.shreyas@gmail.com).&#x20;
