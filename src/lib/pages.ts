@@ -16,6 +16,14 @@ export type PageId = 'home' | 'about' | 'lab';
  * Failing here instead names the entry and the usual fix.
  */
 export async function renderPage(id: PageId) {
+  const entry = await getPageEntry(id);
+  // The entry rides along so a page can read its frontmatter without a second
+  // lookup — Lab needs `items` and `manualOrder` alongside the rendered intro.
+  return { ...(await render(entry)), entry };
+}
+
+/** The raw entry, with the same guard as renderPage. */
+export async function getPageEntry(id: PageId) {
   const entry = await getEntry('pages', id);
   if (!entry) {
     throw new Error(
@@ -25,5 +33,5 @@ export async function renderPage(id: PageId) {
         `start it again.`,
     );
   }
-  return render(entry);
+  return entry;
 }

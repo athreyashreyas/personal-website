@@ -102,6 +102,18 @@ const embedComponents = Object.fromEntries(
 
 const contentComponents = { ...stillComponents, ...embedComponents };
 
+// The same embeds, offered to Lab items as a dropdown rather than a JSX tag.
+// A Lab item is a structured record, not free MDX, so the widget is picked by
+// name and rendered by src/pages/lab/index.astro — see the note on the `lab`
+// singleton below for why that page stopped being one freeform document.
+const widgetOptions = [
+  { label: '— none —', value: '' },
+  ...Object.keys(import.meta.glob('./src/components/embeds/*Widget.astro'))
+    .map(embedNameFromPath)
+    .sort()
+    .map((name) => ({ label: EMBED_LABELS[name] ?? humanizeStillName(name), value: name })),
+];
+
 // Local storage: editing happens in `npm run dev` at /keystatic and writes
 // files straight into this repo — no login, no database. To later edit from
 // anywhere (incl. phone), switch `kind` to 'github' and add the GitHub app.
@@ -132,16 +144,30 @@ export default config({
       },
     }),
 
+    /**
+     * The Lab page: a freeform intro, then a list of discrete items.
+     *
+     * It used to be one MDX document with each thing written inline as an H2
+     * plus a bare <XyzWidget /> tag. That reads fine but has no items in it —
+     * nothing to reorder, and nothing to carry a date — so ordering the page
+     * meant cutting and pasting prose. Items are structured records instead,
+     * which Keystatic gives drag handles to for free.
+     *
+     * `body` is deliberately plain text, not fields.mdx. A nested mdx field
+     * would be stored as a string in this file's frontmatter, and nothing on
+     * the site can compile MDX at render time — the page would print the raw
+     * markup. Item descriptions are a paragraph or two of prose; anything that
+     * needs real formatting belongs in the intro, which is still full MDX.
+     */
     lab: singleton({
       label: 'Lab page',
       path: 'src/content/lab',
-      format: { contentField: 'body' },
+      format: { contentField: 'intro' },
       entryLayout: 'content',
       schema: {
-        body: fields.mdx({
-          label: 'Lab',
-          description:
-            'The Lab page. Drop in an interactive block (e.g. the life-in-weeks grid) anywhere in the body.',
+        intro: fields.mdx({
+          label: 'Intro',
+          description: 'The opening lines, above the list of things.',
           options: {
             image: {
               directory: 'public/images/lab',
@@ -150,6 +176,38 @@ export default config({
           },
           components: contentComponents,
         }),
+        manualOrder: fields.checkbox({
+          label: 'Use manual order',
+          description:
+            'Off: newest first, by date added. On: the order the items are arranged in below.',
+          defaultValue: false,
+        }),
+        items: fields.array(
+          fields.object({
+            title: fields.text({ label: 'Title' }),
+            date: fields.date({
+              label: 'Date added',
+              description: 'Orders the page when "Use manual order" is off.',
+              defaultValue: { kind: 'today' },
+            }),
+            body: fields.text({
+              label: 'Description',
+              description: 'Plain prose. Leave a blank line between paragraphs.',
+              multiline: true,
+            }),
+            widget: fields.select({
+              label: 'Interactive block',
+              description: 'Rendered underneath the description.',
+              options: widgetOptions,
+              defaultValue: '',
+            }),
+          }),
+          {
+            label: 'Things',
+            description: 'Drag to rearrange — the order here is used when manual order is on.',
+            itemLabel: (props) => props.fields.title.value || 'Untitled',
+          },
+        ),
       },
     }),
 
@@ -169,6 +227,45 @@ export default config({
             },
           },
         }),
+      },
+    }),
+
+    /**
+     * Manual ordering for the two file-per-entry collections.
+     *
+     * Astro collections have no inherent order, and Keystatic can't drag-sort
+     * entries that are separate files — so the arrangement lives here instead,
+     * as a list of slugs per page. Both lists are partial on purpose: what's
+     * listed is pinned to the top in that sequence, and everything else falls
+     * in underneath by date added, newest first. An empty list is the default,
+     * not a broken state.
+     *
+     * Deleting an entry leaves its slug behind here; src/lib/ordering.ts skips
+     * ids it can't resolve rather than failing the build.
+     *
+     * Lab is absent because its items aren't a collection — they're an array
+     * inside the Lab singleton, which drag-sorts on its own.
+     */
+    ordering: singleton({
+      label: 'Ordering',
+      path: 'src/content/ordering',
+      format: { data: 'yaml' },
+      schema: {
+        writing: fields.array(fields.relationship({ label: 'Entry', collection: 'writing' }), {
+          label: 'Writing',
+          description:
+            'Pinned to the top of /writing, in this order. Everything else follows, newest first.',
+          itemLabel: (props) => props.value ?? 'Pick an entry',
+        }),
+        recommendations: fields.array(
+          fields.relationship({ label: 'Entry', collection: 'recommendations' }),
+          {
+            label: 'Recommendations',
+            description:
+              'Pinned to the top of /recommendations, in this order. Everything else follows, newest first.',
+            itemLabel: (props) => props.value ?? 'Pick an entry',
+          },
+        ),
       },
     }),
   },

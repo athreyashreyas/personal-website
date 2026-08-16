@@ -64,11 +64,31 @@ const recommendations = defineCollection({
   }),
 });
 
+/**
+ * One thing on the Lab page: a heading, a paragraph or two, and optionally an
+ * interactive block rendered underneath.
+ *
+ * `body` is plain text rather than markdown because nothing renders MDX at
+ * request time — see the `lab` singleton in keystatic.config.tsx. `widget` is
+ * a component name from src/components/embeds, resolved when the page renders
+ * so an unknown name degrades to no widget instead of a build failure.
+ */
+const labItem = z.object({
+  title: z.string(),
+  date: z.coerce.date(),
+  body: optionalString,
+  widget: optionalString,
+});
+
 // Editable single pages (home intro, about, lab), managed as Keystatic
-// singletons that write to src/content/<name>.mdx.
+// singletons that write to src/content/<name>.mdx. Only Lab carries the extra
+// fields; home and about leave them at their defaults.
 const pages = defineCollection({
   loader: glob({ pattern: '{home,about,lab}.mdx', base: './src/content' }),
-  schema: z.object({}),
+  schema: z.object({
+    manualOrder: z.boolean().default(false),
+    items: z.array(labItem).default([]),
+  }),
 });
 
 export const collections = { writing, projects, recommendations, tags, pages };

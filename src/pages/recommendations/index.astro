@@ -1,9 +1,14 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { applyOrder } from '../../lib/ordering';
 
-const items = (await getCollection('recommendations')).sort(
-  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+// Newest first, except for whatever has been pinned on the CMS's Ordering
+// screen — see src/lib/ordering.ts.
+const items = applyOrder(
+  'recommendations',
+  await getCollection('recommendations'),
+  (item) => item.data.date,
 );
 
 // Entries store tag ids, not display text — resolve them against the `tags`
