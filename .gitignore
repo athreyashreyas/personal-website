@@ -4,11 +4,16 @@ dist/
 .astro/
 
 # dependencies
-# node_modules is a symlink to node_modules.nosync: macOS iCloud Drive skips any
-# path ending in .nosync, which keeps ~430MB of deps off the sync daemon. This
-# project lives under ~/Desktop, which has Desktop & Documents syncing on, and
-# iCloud was evicting almost all of node_modules to the cloud — every dep read
-# then blocked on a download, so `astro dev` sat at 0.4% CPU for minutes.
+# Keep this project outside ~/Desktop and ~/Documents. Both are iCloud-synced on
+# this machine, and syncing node_modules is what made `astro dev` unusable: iCloud
+# had evicted ~94% of it to the cloud (429MB logical, 24MB on disk), so every
+# dependency read blocked on a download and the dev server sat at 0.4% CPU for
+# minutes without ever binding its port. It now lives in ~/Projects, which iCloud
+# does not touch.
+#
+# A `node_modules.nosync` symlink was tried first and did not survive — iCloud
+# resolves symlinks into real directories, which put the deps straight back under
+# sync. The entry stays ignored in case one gets recreated.
 node_modules
 node_modules.nosync/
 
