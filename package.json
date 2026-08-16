@@ -20,7 +20,6 @@
     "content:history": "node scripts/content.mjs history",
     "content:restore": "node scripts/content.mjs restore",
     "clean": "node scripts/clean.mjs",
-    "predev": "node scripts/clean.mjs --quiet",
     "prebuild": "node scripts/clean.mjs --quiet"
   },
   "dependencies": {
