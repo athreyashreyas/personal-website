@@ -79,7 +79,7 @@ const EMBED_SCHEMAS: Record<string, Record<string, any>> = {
   },
   LifeInWeeksWidget: {
     years: fields.number({ label: 'Life drawn, in years', defaultValue: 70 }),
-    defaultBirthday: fields.text({ label: 'Starting birthday (yyyy-mm-dd)', defaultValue: '2000-01-01' }),
+    defaultBirthday: fields.text({ label: 'Starting birthday (yyyy-mm-dd)', defaultValue: '2001-09-17' }),
   },
   ServerSeesWidget: {
     sample: fields.text({

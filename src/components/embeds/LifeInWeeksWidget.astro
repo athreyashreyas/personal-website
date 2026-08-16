@@ -14,7 +14,7 @@ interface Props {
   defaultBirthday?: string;
 }
 
-const { years = 70, defaultBirthday = '2000-01-01' } = Astro.props;
+const { years = 70, defaultBirthday = '2001-09-17' } = Astro.props;
 ---
 
 <figure class="liw" data-life-in-weeks data-years={years} data-default={defaultBirthday}>
@@ -406,7 +406,7 @@ const { years = 70, defaultBirthday = '2000-01-01' } = Astro.props;
       const [y, m, d] = (s || '').split('-').map(Number);
       return y && m && d ? new Date(y, m - 1, d) : null;
     };
-    let selected = parseISO(root.dataset.default || '') || new Date(2000, 0, 1);
+    let selected = parseISO(root.dataset.default || '') || new Date(2001, 8, 17);
     if (selected > today) selected = today;
     let view = new Date(selected.getFullYear(), selected.getMonth(), 1);
 
