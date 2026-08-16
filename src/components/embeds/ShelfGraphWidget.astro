@@ -125,6 +125,11 @@ const items = await shelfItems();
     essay: ['#B4552F', '#E08A5F'],
     newsletter: ['#8A5FA0', '#C09AD4'],
     link: ['#3E7191', '#8CB8D6'],
+    // Terracotta, deliberately not another blue: `link` already holds that end
+    // of the scale, and a whole site is a different thing from a single page.
+    // Warm clay also reads against the green entries the way the site's own
+    // paper does, rather than competing with them.
+    website: ['#A25F3E', '#E0A07E'],
     talk: ['#A07A22', '#DCB65F'],
     film: ['#A24A6B', '#D690A8'],
     tag: ['#8C8578', '#9C958A'],
@@ -143,10 +148,29 @@ const items = await shelfItems();
     vx: number;
     vy: number;
     pinned: boolean;
+    /** Which candidate slot this label took last frame; -1 if it was dropped.
+        Kept so placement is sticky rather than re-derived — see placeLabels. */
+    slot: number;
   };
   type Rect = { x: number; y: number; w: number; h: number };
 
-  const cleanups: Array<() => void> = [];
+  type Cleanups = Array<() => void>;
+
+  /**
+   * The live widget on each element, keyed by its root, so a second
+   * initialisation can shut the first one down.
+   *
+   * This used to be one module-level array shared by every instance, and
+   * initShelf bailed out early when the root was already marked ready. Neither
+   * actually stopped a second instance: each call to initShelf builds its own
+   * closure with its own `nodes`, `alpha` and `anim`, so `run()`'s
+   * cancelAnimationFrame reaches only the loop it started — never the previous
+   * closure's. When anything re-ran init while a layout was still settling (an
+   * HMR update in dev is the everyday case), two simulations ended up drawing
+   * to the same canvas on alternating frames, and every label snapped between
+   * two different layouts sixty times a second. That is the flicker.
+   */
+  const instances = new Map<HTMLElement, () => void>();
 
   function palette() {
     const cs = getComputedStyle(document.documentElement);
@@ -175,7 +199,7 @@ const items = await shelfItems();
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   }
 
-  function fitCanvas(canvas: HTMLCanvasElement, onResize?: () => void) {
+  function fitCanvas(canvas: HTMLCanvasElement, cleanups: Cleanups, onResize?: () => void) {
     const ctx = canvas.getContext('2d')!;
     const size = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -208,7 +232,7 @@ const items = await shelfItems();
    * so a burst of toggles coalesces into one continuous repaint that ends when
    * the last transition does.
    */
-  function onThemeChange(fn: () => void) {
+  function onThemeChange(fn: () => void, cleanups: Cleanups) {
     const SETTLE_MS = 340; // the 220ms token transition, plus headroom
     let raf = 0;
     let until = 0;
@@ -243,13 +267,23 @@ const items = await shelfItems();
     el: EventTarget,
     type: K,
     fn: (e: HTMLElementEventMap[K]) => void,
+    cleanups: Cleanups,
   ) {
     el.addEventListener(type, fn as EventListener);
     cleanups.push(() => el.removeEventListener(type, fn as EventListener));
   }
 
   function initShelf(root: HTMLElement) {
-    if (root.dataset.sgReady) return;
+    // Replace rather than refuse. Bailing out left whichever instance got there
+    // first owning the canvas, which is wrong after a swap, and did nothing to
+    // stop the stacked-loop case described above.
+    instances.get(root)?.();
+
+    const cleanups: Cleanups = [];
+    instances.set(root, () => {
+      while (cleanups.length) cleanups.pop()!();
+      instances.delete(root);
+    });
     root.dataset.sgReady = '1';
 
     const canvas = root.querySelector('[data-shelf-canvas]') as HTMLCanvasElement | null;
@@ -272,6 +306,12 @@ const items = await shelfItems();
     let adjacency: Set<number>[] = [];
     let alpha = 1;
     let settled = false;
+    /** When the layout went still, and how long the labels take to fade in. */
+    let settleAt = 0;
+    let calm = 0;
+    const CALM_PX = 0.35;
+    const CALM_FRAMES = 4;
+    const FADE_MS = 260;
     let hover = -1;
     let drag = -1;
     let anim = 0;
@@ -308,7 +348,7 @@ const items = await shelfItems();
         nodes.push({
           label: it.title, kind: 'item', hue: hueKey(it.category), url: it.url,
           deg: it.tags.length,
-          x: 0, y: 0, vx: 0, vy: 0, pinned: false,
+          x: 0, y: 0, vx: 0, vy: 0, pinned: false, slot: -1,
         });
       });
       items.forEach((it) => {
@@ -321,7 +361,7 @@ const items = await shelfItems();
             index.set(key, to);
             nodes.push({
               label: tag, kind: 'tag', hue: 'tag', url: null, deg: 0,
-              x: 0, y: 0, vx: 0, vy: 0, pinned: false,
+              x: 0, y: 0, vx: 0, vy: 0, pinned: false, slot: -1,
             });
           }
           nodes[to].deg++;
@@ -357,6 +397,8 @@ const items = await shelfItems();
 
       alpha = 1;
       settled = false;
+      settleAt = 0;
+      calm = 0;
       hover = -1;
       drag = -1;
       readout!.textContent = `${itemCount} ${itemCount === 1 ? 'entry' : 'entries'} · ${tagCount} ${
@@ -440,6 +482,7 @@ const items = await shelfItems();
         b.vx -= ux; b.vy -= uy;
       }
 
+      let maxMove = 0;
       for (const n of nodes) {
         n.vx -= n.x * GRAV_X;
         n.vy -= n.y * GRAV_Y;
@@ -450,11 +493,32 @@ const items = await shelfItems();
         }
         n.vx *= DAMP;
         n.vy *= DAMP;
-        n.x += n.vx * alpha;
-        n.y += n.vy * alpha;
+        const mx = n.vx * alpha;
+        const my = n.vy * alpha;
+        n.x += mx;
+        n.y += my;
+        const move = Math.abs(mx) + Math.abs(my);
+        if (move > maxMove) maxMove = move;
       }
       alpha *= 0.985;
-      if (alpha < 0.05) settled = true;
+
+      /* Settle on how much the cloud is actually moving, not on alpha alone.
+         alpha is a fixed decay curve — reaching 0.05 always takes ~200 frames,
+         whatever the graph is doing — but the layout stops moving visibly long
+         before that. Labels are gated on `settled`, so trusting alpha would
+         hold them back for a couple of seconds after the picture is already
+         still. A few consecutive near-motionless frames is the real signal;
+         alpha stays as a backstop for a graph that never fully quiets. */
+      if (maxMove < CALM_PX) calm++;
+      else calm = 0;
+      if (!settled && (calm >= CALM_FRAMES || alpha < 0.05)) {
+        settled = true;
+        settleAt = performance.now();
+        // Converged: stop integrating. Left alone, alpha has seconds of decay
+        // still to run, and that slow drift would slide nodes out from under
+        // the labels the moment they were placed.
+        alpha = Math.min(alpha, 0.02);
+      }
     }
 
     const overlaps = (a: Rect, b: Rect) =>
@@ -497,15 +561,30 @@ const items = await shelfItems();
           );
         }
 
-        for (const slot of slots) {
+        // Try the slot this label held last time before anything else. Two
+        // slots are often both free, and picking the first that fits means a
+        // label hops between them as its neighbours shift — during a drag, or
+        // on the frame a hover changes what is on screen. Preferring the
+        // incumbent means a label only moves when its slot is genuinely taken.
+        const tryOrder = slots.map((_, k) => k);
+        if (n.slot >= 0 && n.slot < slots.length) {
+          tryOrder.splice(n.slot, 1);
+          tryOrder.unshift(n.slot);
+        }
+
+        let took = -1;
+        for (const k of tryOrder) {
+          const slot = slots[k];
           const { x, y, w: rw, h: rh } = slot.rect;
           if (x < 8 || y < 8 || x + rw > w - 8 || y + rh > h - 8) continue;
           const pad = { x: x - 3, y: y - 2, w: rw + 6, h: rh + 4 };
           if (occupied.some((o) => overlaps(pad, o))) continue;
           occupied.push(pad);
           placed.push({ i, ...slot });
+          took = k;
           break;
         }
+        n.slot = took;
       }
       return placed;
     }
@@ -572,9 +651,14 @@ const items = await shelfItems();
         ctx.fill();
       }
 
-      // Labels fade in once the layout stops moving — during the settle they'd
-      // be re-solving their slots every frame and reading as a flicker.
-      const fade = settled ? 1 : Math.max(0, Math.min(1, (0.3 - alpha) / 0.25));
+      /* Nothing is labelled until the layout is still.
+         placeLabels re-solves from scratch every frame, so while the cloud is
+         still expanding a slot that was clear last frame is taken this one and
+         the title snaps from below its node to above it — several times a
+         second, which is the flicker. Fading in from alpha 0.3 started that
+         two seconds before the graph stopped moving; the fade now runs on the
+         clock, from the moment motion actually stopped. */
+      const fade = settled ? Math.min(1, (performance.now() - settleAt) / FADE_MS) : 0;
       if (fade <= 0.01) return;
 
       // Nodes themselves are obstacles, so a label never lands on a dot.
@@ -613,12 +697,15 @@ const items = await shelfItems();
       }
     }
 
-    const ctx = fitCanvas(canvas, () => draw());
+    const ctx = fitCanvas(canvas, cleanups, () => draw());
 
     function run() {
       cancelAnimationFrame(anim);
       const tick = () => {
-        if (alpha > 0.02 || drag >= 0) {
+        // Settling clamps alpha, so the fade needs its own reason to keep
+        // frames coming — otherwise the labels stop half-way through.
+        const fading = settled && performance.now() - settleAt < FADE_MS;
+        if (alpha > 0.02 || drag >= 0 || fading) {
           step();
           draw();
           anim = requestAnimationFrame(tick);
@@ -627,8 +714,11 @@ const items = await shelfItems();
         }
       };
       anim = requestAnimationFrame(tick);
-      cleanups.push(() => cancelAnimationFrame(anim));
     }
+    // Registered once, not per run(): the closure reads whatever `anim` holds
+    // when it fires, and pushing on every call (including every pointerdown)
+    // just grew the list without cancelling anything extra.
+    cleanups.push(() => cancelAnimationFrame(anim));
 
     function pick(ev: PointerEvent) {
       const rect = canvas!.getBoundingClientRect();
@@ -664,7 +754,7 @@ const items = await shelfItems();
         hover = i;
         if (alpha <= 0.02) draw();
       }
-    });
+    }, cleanups);
     on(canvas, 'pointerdown', (e) => {
       const { i } = pick(e);
       if (i < 0) return;
@@ -676,7 +766,7 @@ const items = await shelfItems();
       canvas.setPointerCapture(e.pointerId);
       alpha = Math.max(alpha, 0.3);
       run();
-    });
+    }, cleanups);
     on(canvas, 'pointerup', (e) => {
       if (drag < 0) return;
       const n = nodes[drag];
@@ -688,13 +778,13 @@ const items = await shelfItems();
       drag = -1;
       canvas.classList.remove('is-grabbing');
       canvas.releasePointerCapture(e.pointerId);
-    });
+    }, cleanups);
     on(canvas, 'pointerleave', () => {
       if (hover !== -1) {
         hover = -1;
         if (alpha <= 0.02) draw();
       }
-    });
+    }, cleanups);
 
     onThemeChange(() => {
       colors = palette();
@@ -708,7 +798,7 @@ const items = await shelfItems();
         drawLegend();
       }
       draw();
-    });
+    }, cleanups);
 
     build();
   }
@@ -718,7 +808,7 @@ const items = await shelfItems();
   }
 
   function teardown() {
-    while (cleanups.length) cleanups.pop()!();
+    for (const dispose of Array.from(instances.values())) dispose();
   }
 
   document.addEventListener('astro:page-load', init);
