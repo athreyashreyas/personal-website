@@ -1,7 +1,7 @@
-# Manual ordering overrides, edited in the CMS under "Ordering".
-#
-# Each list holds entry slugs, in the order they should appear at the top of
-# their page. Anything not listed here falls in underneath, newest first — so
-# an empty list means "pure date-added order", which is the default.
 writing: []
-recommendations: []
+recommendations:
+  - from-third-world-to-first
+  - desperately-seeking-shah-rukh
+  - born-a-crime
+  - a-fine-balance
+  - patrick-collison-s-website
