@@ -90,7 +90,9 @@ const shelf = await shelfItems();
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
-    touch-action: none;
+    /* pan-y, not none — see ShelfGraphWidget: `none` traps the page scroll on
+       a phone for anyone whose finger lands on the canvas. */
+    touch-action: pan-y;
     cursor: grab;
   }
   .canvas.is-grabbing {
@@ -601,23 +603,30 @@ const shelf = await shelfItems();
       ctx.fillRect(0, 0, w, h);
       if (!nodes.length) return;
 
-      // Fit the current cloud into the box, leaving a margin for labels.
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const n of nodes) {
-        minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
-        minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+      /* Fit the current cloud into the box, leaving a margin for labels —
+         but hold it still for the duration of a drag. The drag handler inverts
+         this transform to turn a pointer position into world coordinates, so
+         re-deriving it from a bounding box the dragged node is part of feeds
+         back on itself and the whole graph lurches. Same fix as the shipped
+         widget in components/embeds/ShelfGraphWidget.astro. */
+      if (drag < 0) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const n of nodes) {
+          minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+          minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+        }
+        const pad = w < 560 ? 40 : 64;
+        const s = Math.min(
+          (w - pad * 2) / Math.max(1, maxX - minX),
+          (h - pad * 2) / Math.max(1, maxY - minY),
+          1.5,
+        );
+        view = {
+          s,
+          ox: w / 2 - ((minX + maxX) / 2) * s,
+          oy: h / 2 - ((minY + maxY) / 2) * s,
+        };
       }
-      const pad = 64;
-      const s = Math.min(
-        (w - pad * 2) / Math.max(1, maxX - minX),
-        (h - pad * 2) / Math.max(1, maxY - minY),
-        1.5,
-      );
-      view = {
-        s,
-        ox: w / 2 - ((minX + maxX) / 2) * s,
-        oy: h / 2 - ((minY + maxY) / 2) * s,
-      };
       const X = (n: Node) => n.x * view.s + view.ox;
       const Y = (n: Node) => n.y * view.s + view.oy;
 
@@ -730,15 +739,27 @@ const shelf = await shelfItems();
     let downAt = 0;
     let moved = 0;
 
+    /** Give up the current drag without treating it as a click. */
+    function endDrag(e?: PointerEvent) {
+      if (drag < 0) return;
+      nodes[drag].pinned = false;
+      drag = -1;
+      canvas!.classList.remove('is-grabbing');
+      if (e && canvas!.hasPointerCapture(e.pointerId)) canvas!.releasePointerCapture(e.pointerId);
+      run();
+    }
+
     on(canvas, 'pointermove', (e) => {
       const { i, px, py } = pick(e);
       if (drag >= 0) {
         moved++;
         nodes[drag].x = (px - view.ox) / view.s;
         nodes[drag].y = (py - view.oy) / view.s;
-        alpha = Math.max(alpha, 0.3);
+        alpha = Math.max(alpha, 0.12);
         return;
       }
+      // Touch has no hover; isolation there is by tap, in pointerup.
+      if (e.pointerType !== 'mouse') return;
       if (i !== hover) {
         hover = i;
         if (alpha <= 0.02) draw();
@@ -746,7 +767,13 @@ const shelf = await shelfItems();
     });
     on(canvas, 'pointerdown', (e) => {
       const { i } = pick(e);
-      if (i < 0) return;
+      if (i < 0) {
+        if (e.pointerType !== 'mouse' && hover !== -1) {
+          hover = -1;
+          draw();
+        }
+        return;
+      }
       drag = i;
       moved = 0;
       downAt = performance.now();
@@ -759,16 +786,28 @@ const shelf = await shelfItems();
     on(canvas, 'pointerup', (e) => {
       if (drag < 0) return;
       const n = nodes[drag];
-      n.pinned = false;
-      // A quick press that didn't travel is a click, not a drag.
-      if (moved < 4 && performance.now() - downAt < 400 && n.kind === 'item' && n.url) {
-        window.open(n.url, '_blank', 'noopener');
+      const i = drag;
+      const tapped = moved < 4 && performance.now() - downAt < 400;
+      endDrag(e);
+      if (!tapped) return;
+      if (e.pointerType === 'mouse') {
+        if (n.kind === 'item' && n.url) window.open(n.url, '_blank', 'noopener');
+        return;
       }
-      drag = -1;
-      canvas.classList.remove('is-grabbing');
-      canvas.releasePointerCapture(e.pointerId);
+      // Touch: tap to isolate, tap the isolated node again to follow its link.
+      if (hover === i) {
+        if (n.kind === 'item' && n.url) window.open(n.url, '_blank', 'noopener');
+        return;
+      }
+      hover = i;
+      draw();
     });
-    on(canvas, 'pointerleave', () => {
+    // A touch the browser turns into a page scroll cancels rather than ends.
+    on(canvas, 'pointercancel', (e) => endDrag(e));
+    on(canvas, 'pointerleave', (e) => {
+      // Mouse only: a touch pointer fires leave the instant the finger lifts,
+      // which would clear the isolation the tap above just set.
+      if (e.pointerType !== 'mouse') return;
       if (hover !== -1) {
         hover = -1;
         if (alpha <= 0.02) draw();

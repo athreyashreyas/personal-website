@@ -1,0 +1,85 @@
+---
+// Astro emits this as dist/404.html, which Netlify serves for any unmatched
+// path automatically — no redirect rule needed. Without it a mistyped URL got
+// Netlify's own default page: no nav, no theme, no way back into the site.
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const elsewhere = [
+  { href: '/writing', label: 'Writing', note: 'Notes and longer pieces.' },
+  { href: '/projects', label: 'Projects', note: "Things I've built." },
+  { href: '/recommendations', label: 'Recommendations', note: 'Books, links, and tools.' },
+  { href: '/lab', label: 'Lab', note: 'Interactive one-offs.' },
+];
+---
+
+<BaseLayout
+  title="Page not found"
+  description="That page doesn't exist — but here's the rest of the site."
+>
+  <header class="page-head">
+    <p class="meta">Error 404</p>
+    <h1><span class="hl-title">This page doesn't exist</span></h1>
+    <p class="page-sub">
+      The link may be out of date, or the address slightly off. Nothing here is
+      lost on purpose — try one of these instead.
+    </p>
+  </header>
+
+  <ul class="elsewhere">
+    {
+      elsewhere.map((item) => (
+        <li>
+          <a href={item.href}>{item.label}</a>
+          <span class="note">{item.note}</span>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="home"><a href="/">Back to the home page</a></p>
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.5rem;
+  }
+  .page-sub {
+    margin: 0.6rem 0 0;
+    max-width: 46ch;
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+  }
+
+  .elsewhere {
+    margin: 0 0 2.5rem;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--border);
+  }
+  .elsewhere li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.9rem;
+    margin: 0;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .elsewhere a {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  .note {
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .home {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+  }
+</style>

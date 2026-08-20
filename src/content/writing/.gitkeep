@@ -1,0 +1,7 @@
+# Keeps this directory tracked while there are no posts yet, matching the
+# .gitkeep convention used under public/images.
+#
+# It does NOT silence the "collection writing does not exist or is empty" line
+# on dev start and build — Astro reports that for any collection with no
+# entries, present directory or not. It goes away with the first post; the
+# /writing page renders its own empty state until then.

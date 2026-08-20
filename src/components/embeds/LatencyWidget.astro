@@ -303,6 +303,12 @@ const {
       };
       raf = requestAnimationFrame(tick);
     });
+
+    // A run in progress would otherwise keep stepping against detached DOM
+    // after a client-side navigation, until the passage happens to finish.
+    document.addEventListener('astro:before-swap', () => cancelAnimationFrame(raf), {
+      once: true,
+    });
   }
 
   function boot() {

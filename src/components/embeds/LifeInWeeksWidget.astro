@@ -290,7 +290,11 @@ const { years = 70, defaultBirthday = '2001-09-17' } = Astro.props;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
-    touch-action: none;
+    /* This grid is hover-only, and the hover handler ignores everything that
+       isn't a mouse — so there was nothing for `touch-action: none` to protect,
+       and all it did was stop a finger landing on the canvas from scrolling
+       the page past it. */
+    touch-action: auto;
   }
 
   .liw-legend {

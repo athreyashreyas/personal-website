@@ -28,9 +28,12 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    {/* Mobile browser chrome matches the page background per theme. */}
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAF8F3" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#191A19" />
+    {/* Mobile browser chrome matches the page background per theme. These
+        cover the pre-JS case; once the reader makes an explicit choice the
+        script in SiteScripts rewrites both, since the OS preference no longer
+        tells you which theme the page is actually in. */}
+    <meta name="theme-color" data-theme-color="light" media="(prefers-color-scheme: light)" content="#FAF8F3" />
+    <meta name="theme-color" data-theme-color="dark" media="(prefers-color-scheme: dark)" content="#191A19" />
 
     <SiteScripts />
 

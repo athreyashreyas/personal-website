@@ -29,6 +29,7 @@ const withKeystatic = isDev && process.env.SITE_ONLY !== '1';
 // export map so the list stays complete as Keystatic updates. Resolved against
 // this file rather than the working directory, so it can't silently come back
 // empty when astro is invoked from elsewhere.
+/** @param {string} pkg */
 function subpathEntries(pkg) {
   try {
     const manifest = new URL(`node_modules/${pkg}/package.json`, import.meta.url);

@@ -33,9 +33,36 @@
       }
     }
 
+    var BG = { light: '#FAF8F3', dark: '#191A19' };
+
+    /**
+     * Keep the mobile browser chrome on the theme the page is actually in.
+     *
+     * The two <meta name="theme-color"> tags are keyed to prefers-color-scheme,
+     * which is right until the reader overrides it here — choose light on a
+     * dark phone and the chrome stayed black above a paper-white page. With an
+     * explicit choice, both tags are set to that theme's background so whichever
+     * one the OS matches gives the same answer; with no choice, each goes back
+     * to describing its own scheme.
+     */
+    function syncThemeColor(explicit) {
+      var tags = document.querySelectorAll('meta[data-theme-color]');
+      for (var i = 0; i < tags.length; i++) {
+        var own = tags[i].getAttribute('data-theme-color');
+        tags[i].setAttribute('content', BG[explicit || own] || BG.light);
+      }
+    }
+
     function applyTheme() {
       var theme = preferredTheme();
       if (theme) document.documentElement.setAttribute('data-theme', theme);
+      var stored = null;
+      try {
+        stored = localStorage.getItem('theme');
+      } catch (e) {
+        /* storage unavailable — treat as no explicit choice */
+      }
+      syncThemeColor(stored === 'dark' || stored === 'light' ? stored : null);
     }
 
     applyTheme();
@@ -67,6 +94,7 @@
       } catch (err) {
         /* storage unavailable; toggle still works for the session */
       }
+      syncThemeColor(next);
       reflect();
     });
     document.addEventListener('astro:page-load', reflect);
@@ -78,6 +106,7 @@
       mq.addEventListener('change', function (e) {
         if (!localStorage.getItem('theme')) {
           document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+          syncThemeColor(null);
           reflect();
         }
       });
@@ -132,6 +161,18 @@
       }
       // A click anywhere outside an open menu closes it.
       if (!dd) closeMenus();
+    });
+
+    // Escape closes the menu and returns focus to the control that opened it.
+    // <details> has no built-in dismiss, so without this a keyboard user who
+    // opens the menu can only leave it by tabbing through every link in it.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var open = document.querySelector('details.nav-dd[open]');
+      if (!open) return;
+      open.open = false;
+      var trigger = open.querySelector('summary');
+      if (trigger) trigger.focus();
     });
 
     document.addEventListener('astro:page-load', function () {

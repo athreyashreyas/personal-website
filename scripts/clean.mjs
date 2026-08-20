@@ -8,8 +8,11 @@
  *     keeps its port and its esbuild service alive; the next one can't bind and
  *     dies quietly, so it looks like "the build is broken".
  *
- *  2. iCloud Drive. This project lives under ~/Desktop, which macOS syncs, and
- *     iCloud resolves its own write conflicts by duplicating: node_modules/.vite
+ *  2. iCloud Drive. The project has since moved to ~/Projects, which iCloud does
+ *     not touch — but the damage pattern is worth keeping described, because it
+ *     is silent and it recurs the moment anything lands back under a synced
+ *     folder (~/Desktop, ~/Documents). iCloud resolves write conflicts by
+ *     duplicating: node_modules/.vite
  *     ends up holding `deps 2` … `deps 16`, dist gets `index 2.html`, and .git
  *     collects `index 2`. Vite then reads a cache that is half someone else's.
  *     Worse, an evicted (dataless) file blocks read() until iCloud materialises
@@ -18,13 +21,18 @@
  * This clears the generated directories and the duplicates inside them. It does
  * NOT touch .git — stray copies in there are inert, but they're yours to remove.
  *
- * Run directly (`npm run clean`) or via the `predev` / `prebuild` hooks.
+ * Run directly (`npm run clean`) or via the `prebuild` hook in package.json.
  */
 import { execSync } from 'node:child_process';
 import { rmSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('..', import.meta.url).pathname;
+// fileURLToPath, not `.pathname`: the latter hands back a percent-encoded URL
+// path, so a project living under a directory with a space in it ("My
+// Projects" → "My%20Projects") yields a path that matches nothing. pgrep then
+// finds no dev server and rmSync silently clears nothing.
+const root = fileURLToPath(new URL('..', import.meta.url));
 const quiet = process.argv.includes('--quiet');
 const log = (...a) => !quiet && console.log(...a);
 
@@ -90,9 +98,10 @@ function reportDuplicates() {
     log(`\n! iCloud conflict copies still present (${dupes.length}):`);
     dupes.slice(0, 10).forEach((d) => log(`    ${d}`));
     if (dupes.length > 10) log(`    …and ${dupes.length - 10} more`);
-    log('  This project is inside an iCloud-synced folder (~/Desktop). Until it');
-    log('  moves out, or Desktop syncing is turned off, these will keep coming');
-    log('  back and builds will intermittently hang on a blocking read.');
+    log('  These are iCloud conflict copies, which means this checkout is inside');
+    log('  a synced folder (~/Desktop, ~/Documents). Until it moves out — or that');
+    log('  folder stops syncing — they keep coming back and builds intermittently');
+    log('  hang on a blocking read of an evicted file.');
   }
 }
 

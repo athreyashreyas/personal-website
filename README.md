@@ -16,6 +16,7 @@ npm run dev:site-only  # same, minus Keystatic — fastest cold start
 npm run edit           # http://localhost:4322  the lightweight editor (below)
 npm run build          # outputs to dist/  (static; CMS excluded)
 npm run preview        # serve the production build locally
+npm run check          # typecheck .astro/.ts (astro check) — run before pushing
 ```
 
 ## Two ways to edit content
@@ -114,6 +115,7 @@ date: 2025-07-24      # optional — used for ordering
 links:
   repo: https://github.com/...   # optional
   live: https://...              # optional
+  doc: https://...               # optional — a write-up hosted elsewhere
 ---
 
 The actual write-up — what it is, why you built it, what you got wrong,
@@ -151,3 +153,15 @@ Push to `main`; Netlify builds with `npm run build` and publishes `dist/`.
 Those settings live in the Netlify site config, not in the repo — there is no
 `netlify.toml` here. Set the build image's Node version to match
 `.node-version` (22). No domain is hardcoded anywhere.
+
+`src/pages/404.astro` builds to `dist/404.html`, which Netlify serves for any
+unmatched path with no configuration needed. `public/robots.txt` allows
+everything except `/lab/previews`, the unlinked scratch page.
+
+### Not done yet: the canonical domain
+
+`astro.config.mjs` deliberately sets no `site`, so nothing assumes a domain.
+That also means the site currently has no canonical URLs, no `og:url`, no
+`og:image`, and no sitemap — all of which need absolute URLs. When the domain
+is settled, set `site` and add those together; `@astrojs/sitemap` and the
+`Sitemap:` line in `robots.txt` are the two follow-ups.

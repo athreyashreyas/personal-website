@@ -159,6 +159,20 @@ const { sample = 'Period started today. Cramps mild.' } = Astro.props;
     const cipherEl = root.querySelector<HTMLElement>('[data-ss-cipher]');
     if (!input || !plainEl || !cipherEl) return;
 
+    // crypto.subtle exists only in a secure context. That covers the deployed
+    // site and localhost, but NOT `astro dev --host` opened from a phone on
+    // http://192.168.x.x — where this used to throw synchronously, taking the
+    // rest of boot() down with it so any later widget on the page never
+    // initialised either. Degrade to showing the plaintext side only.
+    if (!globalThis.crypto?.subtle) {
+      plainEl.textContent = input.value || '—';
+      cipherEl.textContent = 'Needs a secure page (https or localhost) to encrypt.';
+      input.addEventListener('input', () => {
+        plainEl.textContent = input.value || '—';
+      });
+      return;
+    }
+
     // Ephemeral, non-extractable, and scoped to this tab — which is the point
     // being demonstrated.
     const keyPromise = crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
@@ -189,8 +203,17 @@ const { sample = 'Period started today. Cramps mild.' } = Astro.props;
       cipherEl!.textContent = text ? `${b64(iv.buffer)}:${b64(ct)}` : '—';
     }
 
-    input.addEventListener('input', render);
-    render();
+    // render() is async and nothing awaits it, so a rejection here would
+    // surface as an unhandled promise rejection in the console rather than as
+    // anything the reader can see. Say so in the panel instead.
+    const update = () => {
+      render().catch(() => {
+        cipherEl!.textContent = 'Encryption unavailable in this browser.';
+      });
+    };
+
+    input.addEventListener('input', update);
+    update();
   }
 
   function boot() {

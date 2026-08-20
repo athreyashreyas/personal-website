@@ -18,10 +18,21 @@ const items = await shelfItems();
   <div class="sg-controls">
     <output class="sg-readout" data-shelf-readout></output>
   </div>
-  <canvas class="sg-canvas" data-shelf-canvas data-shelf-items={JSON.stringify(items)}></canvas>
+  {/* A decorative re-presentation of the recommendations list, which is itself
+      on /recommendations as text. role=img with a name keeps a screen reader
+      from announcing an empty canvas, without pretending the graph is
+      navigable. */}
+  <canvas
+    class="sg-canvas"
+    role="img"
+    aria-label={`A graph of ${items.length} recommendations and the tags they share. The same entries are listed as text on the recommendations page.`}
+    data-shelf-canvas
+    data-shelf-items={JSON.stringify(items)}></canvas>
   <ul class="sg-legend" data-shelf-legend></ul>
   <figcaption class="sg-note">
-    Hover over a node to isolate what it touches, drag one to pull the rest along and click an entry to open it.
+    Drag a node to pull the rest along. On a mouse, hover a node to isolate what
+    it touches and click an entry to open it; on a touchscreen, tap a node to
+    isolate it and tap it again to open.
   </figcaption>
 </figure>
 
@@ -54,7 +65,13 @@ const items = await shelfItems();
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
-    touch-action: none;
+    /* pan-y, not none: `none` meant a finger starting anywhere on the canvas
+       never scrolled the page, so on a phone this 400px block trapped the
+       reader inside it. Vertical scrolling now passes through, while
+       horizontal movement still reaches the drag handler. The browser cancels
+       the pointer when it takes over the scroll — see the pointercancel
+       handler, without which the node stays stuck to the finger. */
+    touch-action: pan-y;
     cursor: grab;
   }
   .sg-canvas.is-grabbing {
@@ -102,9 +119,12 @@ const items = await shelfItems();
     text-align: center;
   }
 
+  /* Taller rather than shorter on a phone. The canvas is much narrower here,
+     so the layout has to stack vertically, and label placement gives up on any
+     label it can't fit without overlapping — height is what buys those back. */
   @media (max-width: 720px) {
     .sg-canvas {
-      height: 380px;
+      height: 460px;
     }
   }
 </style>
@@ -112,6 +132,14 @@ const items = await shelfItems();
 <script>
   const SANS = "'Plus Jakarta Sans', system-ui, sans-serif";
   const SERIF = "'Newsreader', Georgia, serif";
+
+  /** Label type, a step larger on a narrow canvas. 9.5px tag labels are close
+      to unreadable on a phone held at arm's length; the extra width a bigger
+      label costs is worth less there than being able to read it at all. Used
+      by both the measuring pass and the paint pass, which must agree or the
+      placement boxes stop matching the text drawn into them. */
+  const labelFont = (item: boolean, w: number) =>
+    item ? `600 ${w < 560 ? 14 : 13}px ${SERIF}` : `500 ${w < 560 ? 11 : 9.5}px ${SANS}`;
 
   /** One hue per kind of entry, so a book and a newsletter don't read as the
       same thing. Desaturated and warm enough to sit on the paper background —
@@ -339,32 +367,37 @@ const items = await shelfItems();
     /** Bipartite: a node per entry, a node per tag, an edge for each tagging.
         Entries that share a tag are pulled together by that tag alone. */
     function build() {
-      const index = new Map<string, number>();
+      // Tag id → node index. Entries are NOT indexed by title: two entries can
+      // legitimately share one (two editions, a book and the film of it), and
+      // keying on it made the second overwrite the first, so one node collected
+      // both sets of tags while the other floated unlinked. The entry's
+      // position in `items` is the only identifier guaranteed unique.
+      const tagIndex = new Map<string, number>();
       nodes = [];
       links = [];
 
       items.forEach((it) => {
-        index.set(`i:${it.title}`, nodes.length);
         nodes.push({
           label: it.title, kind: 'item', hue: hueKey(it.category), url: it.url,
-          deg: it.tags.length,
+          deg: 0,
           x: 0, y: 0, vx: 0, vy: 0, pinned: false, slot: -1,
         });
       });
-      items.forEach((it) => {
-        const from = index.get(`i:${it.title}`)!;
-        it.tags.forEach((tag) => {
-          const key = `t:${tag}`;
-          let to = index.get(key);
+      items.forEach((it, from) => {
+        // A tag repeated on one entry is one edge, not two — a duplicate would
+        // double that tag's degree and its spring pull.
+        new Set(it.tags).forEach((tag) => {
+          let to = tagIndex.get(tag);
           if (to === undefined) {
             to = nodes.length;
-            index.set(key, to);
+            tagIndex.set(tag, to);
             nodes.push({
               label: tag, kind: 'tag', hue: 'tag', url: null, deg: 0,
               x: 0, y: 0, vx: 0, vy: 0, pinned: false, slot: -1,
             });
           }
           nodes[to].deg++;
+          nodes[from].deg++;
           links.push([from, to]);
         });
       });
@@ -535,10 +568,10 @@ const items = await shelfItems();
       for (const i of order) {
         const n = nodes[i];
         const item = n.kind === 'item';
-        ctx.font = item ? `600 13px ${SERIF}` : `500 9.5px ${SANS}`;
+        ctx.font = labelFont(item, w);
         const text = item ? n.label : n.label.toUpperCase();
         const tw = ctx.measureText(text).width;
-        const th = item ? 15 : 11;
+        const th = item ? (w < 560 ? 16 : 15) : w < 560 ? 13 : 11;
         const cx = n.x * view.s + view.ox;
         const cy = n.y * view.s + view.oy;
         const r = radius(n) + 5;
@@ -604,23 +637,37 @@ const items = await shelfItems();
         return;
       }
 
-      // Fit the current cloud into the box, leaving a margin for labels.
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const n of nodes) {
-        minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
-        minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+      /* Fit the current cloud into the box, leaving a margin for labels.
+
+         Frozen for the duration of a drag. This transform is derived from the
+         node bounding box, and the drag handler inverts it to turn a pointer
+         position back into world coordinates — so recomputing it mid-drag is a
+         feedback loop: pulling a node outward grows the box, which shrinks the
+         scale, which re-maps the same finger position to a different world
+         point, which moves the node again. On a phone, where a drag crosses
+         most of the canvas, that reads as the whole graph lurching around.
+         Holding the view still means the node tracks the finger exactly and
+         the re-fit happens once, on release. */
+      if (drag < 0) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const n of nodes) {
+          minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+          minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+        }
+        // Labels need room to sit outside the cloud; less of it on a narrow
+        // canvas, where 64px a side is most of the width.
+        const pad = w < 560 ? 40 : 64;
+        const s = Math.min(
+          (w - pad * 2) / Math.max(1, maxX - minX),
+          (h - pad * 2) / Math.max(1, maxY - minY),
+          1.5,
+        );
+        view = {
+          s,
+          ox: w / 2 - ((minX + maxX) / 2) * s,
+          oy: h / 2 - ((minY + maxY) / 2) * s,
+        };
       }
-      const pad = 64;
-      const s = Math.min(
-        (w - pad * 2) / Math.max(1, maxX - minX),
-        (h - pad * 2) / Math.max(1, maxY - minY),
-        1.5,
-      );
-      view = {
-        s,
-        ox: w / 2 - ((minX + maxX) / 2) * s,
-        oy: h / 2 - ((minY + maxY) / 2) * s,
-      };
       const X = (n: Node) => n.x * view.s + view.ox;
       const Y = (n: Node) => n.y * view.s + view.oy;
 
@@ -689,7 +736,7 @@ const items = await shelfItems();
         ctx.fillStyle = colors.bg;
         ctx.fillRect(p.rect.x - 2, p.rect.y - 1, p.rect.w + 4, p.rect.h + 2);
 
-        ctx.font = item ? `600 13px ${SERIF}` : `500 9.5px ${SANS}`;
+        ctx.font = labelFont(item, w);
         ctx.fillStyle = withAlpha(hue(n.hue), (item ? 1 : 0.9) * fade);
         ctx.textAlign = p.align;
         ctx.textBaseline = 'top';
@@ -741,15 +788,34 @@ const items = await shelfItems();
     let downAt = 0;
     let moved = 0;
 
+    /** Give up the current drag without treating it as a click. */
+    function endDrag(e?: PointerEvent) {
+      if (drag < 0) return;
+      nodes[drag].pinned = false;
+      drag = -1;
+      canvas!.classList.remove('is-grabbing');
+      if (e && canvas!.hasPointerCapture(e.pointerId)) canvas!.releasePointerCapture(e.pointerId);
+      // The view was frozen for the drag — let it re-fit around where the node
+      // was actually left.
+      run();
+    }
+
     on(canvas, 'pointermove', (e) => {
       const { i, px, py } = pick(e);
       if (drag >= 0) {
         moved++;
         nodes[drag].x = (px - view.ox) / view.s;
         nodes[drag].y = (py - view.oy) / view.s;
-        alpha = Math.max(alpha, 0.3);
+        // Enough to let the neighbours follow, but well short of re-heating the
+        // whole cloud: at 0.3 every node moves visibly on every frame of the
+        // drag, which is most of what made this feel out of control.
+        alpha = Math.max(alpha, 0.12);
         return;
       }
+      // Touch has no hover — a stray pointermove from a finger would leave the
+      // graph isolated on whatever it last passed over, with no way to clear
+      // it. Touch isolation is handled by tap, in pointerup below.
+      if (e.pointerType !== 'mouse') return;
       if (i !== hover) {
         hover = i;
         if (alpha <= 0.02) draw();
@@ -757,7 +823,14 @@ const items = await shelfItems();
     }, cleanups);
     on(canvas, 'pointerdown', (e) => {
       const { i } = pick(e);
-      if (i < 0) return;
+      if (i < 0) {
+        // Tapping the background clears a touch isolation.
+        if (e.pointerType !== 'mouse' && hover !== -1) {
+          hover = -1;
+          draw();
+        }
+        return;
+      }
       drag = i;
       moved = 0;
       downAt = performance.now();
@@ -770,16 +843,37 @@ const items = await shelfItems();
     on(canvas, 'pointerup', (e) => {
       if (drag < 0) return;
       const n = nodes[drag];
-      n.pinned = false;
+      const i = drag;
       // A quick press that didn't travel is a click, not a drag.
-      if (moved < 4 && performance.now() - downAt < 400 && n.kind === 'item' && n.url) {
-        window.open(n.url, '_blank', 'noopener');
+      const tapped = moved < 4 && performance.now() - downAt < 400;
+      endDrag(e);
+      if (!tapped) return;
+
+      if (e.pointerType === 'mouse') {
+        if (n.kind === 'item' && n.url) window.open(n.url, '_blank', 'noopener');
+        return;
       }
-      drag = -1;
-      canvas.classList.remove('is-grabbing');
-      canvas.releasePointerCapture(e.pointerId);
+      // Touch: the first tap isolates the node — which is the only way to read
+      // a label the layout had to drop, since there is no hover to reveal it.
+      // Tapping the node that is already isolated is the one that follows the
+      // link, so a link is never opened by a stray tap.
+      if (hover === i) {
+        if (n.kind === 'item' && n.url) window.open(n.url, '_blank', 'noopener');
+        return;
+      }
+      hover = i;
+      draw();
     }, cleanups);
-    on(canvas, 'pointerleave', () => {
+    // A touch that the browser decides to turn into a page scroll (see
+    // touch-action: pan-y) cancels the pointer instead of ending it. Without
+    // this the node stays pinned and `drag` stays set, so the next finger
+    // anywhere on the canvas drags that node around.
+    on(canvas, 'pointercancel', (e) => endDrag(e), cleanups);
+    on(canvas, 'pointerleave', (e) => {
+      // Mouse only. A touch pointer stops existing when the finger lifts, so it
+      // fires leave immediately after every tap — which would clear the
+      // isolation that tap just set, on the same frame.
+      if (e.pointerType !== 'mouse') return;
       if (hover !== -1) {
         hover = -1;
         if (alpha <= 0.02) draw();

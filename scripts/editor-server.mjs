@@ -25,6 +25,13 @@ const PORT = Number(process.env.PORT) || 4322;
 // Mirrors keystatic.config.tsx / src/content.config.ts. Kept in sync by hand
 // — this tool intentionally has no dependency on Keystatic's own config
 // format, so there is one small, readable source of truth for it here.
+//
+// It is deliberately a SUBSET: a recommendation's `tags` are ids from the
+// controlled vocabulary in src/content/tags, and a free-text box here would
+// happily invent `Public Policy` alongside the real `public-policy`. Editing
+// those stays in /keystatic, which offers the existing tags as a picker.
+// Frontmatter this schema doesn't list is preserved verbatim on save — see
+// buildFrontmatter — so an omission here can never delete anything.
 
 const COLLECTIONS = {
   pages: {
@@ -77,6 +84,7 @@ const COLLECTIONS = {
       { name: 'date', label: 'Date', type: 'date', description: 'Used for ordering (newest first).', default: 'today' },
       { name: 'links.repo', label: 'Repo URL', type: 'url' },
       { name: 'links.live', label: 'Live URL', type: 'url' },
+      { name: 'links.doc', label: 'Write-up URL', type: 'url', description: 'A doc, report, or deck that lives outside this site.' },
     ],
   },
   recommendations: {
@@ -123,15 +131,29 @@ function serializeEntry(data, body, yamlText) {
   return `---\n${front.replace(/\n?$/, '\n')}---\n\n${body.trim()}\n`;
 }
 
-/** Builds the frontmatter object for a collection from posted field values. */
-function buildFrontmatter(collectionKey, values) {
+/**
+ * Builds the frontmatter object for a collection from posted field values,
+ * layered over whatever the file already had.
+ *
+ * `existing` is not an optimisation — it is what stops this editor destroying
+ * data. The schema above is a hand-kept subset of the real one in
+ * src/content.config.ts: it has no `tags` for a recommendation and no
+ * `links.doc` for a project. Building the frontmatter from the schema alone
+ * meant those keys simply weren't in the object that got dumped back out, so
+ * renaming a book here deleted every tag on it. (Body-only edits survived by
+ * accident, via the yamlText shortcut in writeEntry.) Starting from the file's
+ * own data and overwriting only the fields this editor manages means an
+ * unknown key rides through untouched.
+ */
+function buildFrontmatter(collectionKey, values, existing = {}) {
   const def = COLLECTIONS[collectionKey];
-  const data = {};
+  const data = { ...existing };
   for (const field of def.fields) {
     const raw = values[field.name];
     if (field.name.includes('.')) {
       const [group, key] = field.name.split('.');
-      data[group] = data[group] || {};
+      // Clone rather than mutate: `existing` is the caller's parsed frontmatter.
+      data[group] = { ...(data[group] ?? {}) };
       data[group][key] = raw ?? '';
       continue;
     }
@@ -306,7 +328,16 @@ async function readEntry(key, id) {
 async function writeEntry(key, id, fields, body) {
   const def = collectionOrThrow(key);
   const filePath = entryFilePath(key, id);
-  const data = def.kind === 'singleton' ? {} : buildFrontmatter(key, fields);
+
+  const existing = await readFile(filePath, 'utf8').catch(() => null);
+  const previous = existing === null ? null : parseFrontmatter(existing);
+
+  // A singleton's frontmatter is entirely outside this editor's schema (Lab
+  // carries `items` and `manualOrder`), so it is carried over wholesale.
+  const data =
+    def.kind === 'singleton'
+      ? { ...(previous?.data ?? {}) }
+      : buildFrontmatter(key, fields, previous?.data ?? {});
 
   // Keep the file's existing frontmatter text when none of its values actually
   // changed. Re-dumping produces valid but differently formatted YAML than
@@ -316,11 +347,7 @@ async function writeEntry(key, id, fields, body) {
   // `npm run content:status`, and flips back and forth as you alternate between
   // this editor and /keystatic.
   let yamlText;
-  const existing = await readFile(filePath, 'utf8').catch(() => null);
-  if (existing !== null) {
-    const previous = parseFrontmatter(existing);
-    if (sameFields(key, previous.data, data)) yamlText = previous.yamlText;
-  }
+  if (previous && sameFields(key, previous.data, data)) yamlText = previous.yamlText;
 
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, serializeEntry(data, body, yamlText), 'utf8');
