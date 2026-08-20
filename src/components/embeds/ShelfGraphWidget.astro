@@ -17,6 +17,19 @@ const items = await shelfItems();
 <figure class="sg" data-shelf>
   <div class="sg-controls">
     <output class="sg-readout" data-shelf-readout></output>
+
+    {/* Pinch and ctrl-wheel are the fast paths, but neither is available to a
+        keyboard and neither is discoverable. These are the guaranteed one. */}
+    <span class="sg-zoom">
+      <button type="button" class="sg-btn" data-shelf-zoom="out" aria-label="Zoom out">
+        &minus;
+      </button>
+      <output class="sg-level" data-shelf-level aria-live="off">100%</output>
+      <button type="button" class="sg-btn" data-shelf-zoom="in" aria-label="Zoom in">+</button>
+      <button type="button" class="sg-btn sg-btn--wide" data-shelf-zoom="reset" hidden>
+        Reset
+      </button>
+    </span>
   </div>
   {/* A decorative re-presentation of the recommendations list, which is itself
       on /recommendations as text. role=img with a name keeps a screen reader
@@ -30,8 +43,10 @@ const items = await shelfItems();
     data-shelf-items={JSON.stringify(items)}></canvas>
   <ul class="sg-legend" data-shelf-legend></ul>
   <figcaption class="sg-note">
-    Drag a node to pull the rest along. On a mouse, hover a node to isolate what
-    it touches and click an entry to open it; on a touchscreen, tap a node to
+    Pinch or ⌘/Ctrl-scroll to zoom in on a corner — titles grow and crowded ones
+    reappear as the graph opens up. Drag the background to move around, drag a
+    node to pull the rest along. On a mouse, hover a node to isolate what it
+    touches and click an entry to open it; on a touchscreen, tap a node to
     isolate it and tap it again to open.
   </figcaption>
 </figure>
@@ -56,6 +71,50 @@ const items = await shelfItems();
   }
   .sg-readout {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Pushed to the far end of the control bar, away from the readout. */
+  .sg-zoom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+  }
+  .sg-level {
+    min-width: 3.4em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sg-btn {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    line-height: 1;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    /* A real touch target — these are the fallback for anyone who can't pinch. */
+    min-width: 2rem;
+    min-height: 2rem;
+    cursor: pointer;
+  }
+  .sg-btn--wide {
+    min-width: auto;
+    padding: 0 0.6em;
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+  }
+  .sg-btn[hidden] {
+    display: none;
+  }
+  .sg-btn:hover:not(:disabled) {
+    color: var(--accent-link);
+    border-color: var(--accent-link);
+  }
+  .sg-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 
   .sg-canvas {
@@ -135,11 +194,50 @@ const items = await shelfItems();
 
   /** Label type, a step larger on a narrow canvas. 9.5px tag labels are close
       to unreadable on a phone held at arm's length; the extra width a bigger
-      label costs is worth less there than being able to read it at all. Used
-      by both the measuring pass and the paint pass, which must agree or the
-      placement boxes stop matching the text drawn into them. */
-  const labelFont = (item: boolean, w: number) =>
-    item ? `600 ${w < 560 ? 14 : 13}px ${SERIF}` : `500 ${w < 560 ? 11 : 9.5}px ${SANS}`;
+      label costs is worth less there than being able to read it at all. */
+  const baseLabelSize = (item: boolean, w: number) =>
+    item ? (w < 560 ? 14 : 13) : w < 560 ? 11 : 9.5;
+
+  /**
+   * How much bigger labels get as the reader zooms in.
+   *
+   * Deliberately sub-linear and capped. Scaling text with the zoom outright
+   * would make a title 8× its size at maximum zoom — unreadably large, and it
+   * would crowd out its neighbours exactly when the reader is trying to
+   * separate them. The nodes themselves spread apart at the full rate, so a
+   * gentle growth curve still leaves far more room per label than at 1×: the
+   * overlap solver drops fewer of them, which is what actually makes titles
+   * appear as you zoom.
+   */
+  const labelScale = (zoom: number) => Math.min(1.75, Math.pow(zoom, 0.42));
+
+  /**
+   * Trim `text` to fit `maxW`, with an ellipsis.
+   *
+   * Zooming scales labels up, and past a point a long title is simply wider
+   * than the canvas — every candidate slot fails its bounds check and the
+   * label is dropped, so the entry the reader zoomed in to read is the one
+   * with no name on it. Truncating keeps it legible and identifiable; the full
+   * title is a hover or a tap away, and on the recommendations page in full.
+   */
+  function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number) {
+    if (ctx.measureText(text).width <= maxW) return text;
+    let lo = 0;
+    let hi = text.length;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (ctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo > 0 ? text.slice(0, lo).trimEnd() + '…' : text.slice(0, 1) + '…';
+  }
+
+  /** Used by both the measuring pass and the paint pass, which must agree or
+      the placement boxes stop matching the text drawn into them. */
+  const labelFont = (item: boolean, w: number, zoom: number) => {
+    const px = baseLabelSize(item, w) * labelScale(zoom);
+    return item ? `600 ${px}px ${SERIF}` : `500 ${px}px ${SANS}`;
+  };
 
   /** One hue per kind of entry, so a book and a newsletter don't read as the
       same thing. Desaturated and warm enough to sit on the paper background —
@@ -296,8 +394,12 @@ const items = await shelfItems();
     type: K,
     fn: (e: HTMLElementEventMap[K]) => void,
     cleanups: Cleanups,
+    // wheel listeners are passive by default, and a passive listener cannot
+    // preventDefault — which the zoom handler must, or the trackpad pinch
+    // zooms the whole page instead of the graph.
+    opts?: AddEventListenerOptions,
   ) {
-    el.addEventListener(type, fn as EventListener);
+    el.addEventListener(type, fn as EventListener, opts);
     cleanups.push(() => el.removeEventListener(type, fn as EventListener));
   }
 
@@ -317,6 +419,7 @@ const items = await shelfItems();
     const canvas = root.querySelector('[data-shelf-canvas]') as HTMLCanvasElement | null;
     const readout = root.querySelector('[data-shelf-readout]') as HTMLElement | null;
     const legend = root.querySelector('[data-shelf-legend]') as HTMLElement | null;
+    const level = root.querySelector('[data-shelf-level]') as HTMLElement | null;
     if (!canvas || !readout || !legend) return;
 
     let items: Item[] = [];
@@ -343,7 +446,178 @@ const items = await shelfItems();
     let hover = -1;
     let drag = -1;
     let anim = 0;
+
+    /* Live pointers on the canvas, by pointerId. Two at once is a pinch; one
+       on empty space is a pan; one on a node drags it. */
+    const pointers = new Map<number, { x: number; y: number }>();
+    /** The two-finger gesture in progress: its span and midpoint last frame. */
+    let pinch: { dist: number; mx: number; my: number } | null = null;
+    /** A one-finger / mouse drag of the background, moving the camera. */
+    let panning: { x: number; y: number } | null = null;
+
+    /* ---------------------------------------------------------- the camera */
+    /**
+     * The transform is two layers, not one.
+     *
+     * `fit` is the automatic part: whatever scale and offset drops the current
+     * cloud into the canvas. `zoom` and `pan` are the reader's, applied on top
+     * of it. Keeping them separate is what makes zoom stable — the reader's 3×
+     * stays 3× when the layout shifts or the canvas resizes, because it is
+     * expressed relative to the fit rather than baked into one absolute scale.
+     *
+     * `view` is the composition of the two, and is what everything else reads.
+     * It is recomputed by syncView() rather than assigned to directly.
+     */
+    let fit = { s: 1, ox: 0, oy: 0 };
+    let zoom = 1;
+    let pan = { x: 0, y: 0 };
     let view = { s: 1, ox: 0, oy: 0 };
+
+    /* The fixed boundary the reader zooms within.
+     *
+     * 1 is "the whole graph fits", so there is never a way to zoom out into
+     * empty space. The ceiling is set from the size of the graph rather than
+     * fixed: on this shelf (5 entries, 15 tags) a flat 8× put a single node on
+     * an otherwise blank canvas — past the point where zooming tells you
+     * anything. A denser collection genuinely needs to go further in, so it
+     * scales with the node count and stops at 6×. */
+    const MIN_ZOOM = 1;
+    let maxZoom = 3;
+    const setMaxZoom = () => {
+      maxZoom = Math.min(6, Math.max(3, nodes.length / 6));
+    };
+
+    /** Whether the reader has taken the camera off its default. */
+    const cameraMoved = () => zoom !== 1 || pan.x !== 0 || pan.y !== 0;
+
+    /** The world-space bounding box of the cloud. */
+    function bounds() {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const n of nodes) {
+        minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+        minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+      }
+      return { minX, maxX, minY, maxY };
+    }
+
+    /** Recompute the automatic layer: drop the whole cloud into the canvas. */
+    function refit(w: number, h: number) {
+      if (!nodes.length) return;
+      const { minX, maxX, minY, maxY } = bounds();
+      // Labels need room to sit outside the cloud; less of it on a narrow
+      // canvas, where 64px a side is most of the width.
+      const pad = w < 560 ? 40 : 64;
+      const s = Math.min(
+        (w - pad * 2) / Math.max(1, maxX - minX),
+        (h - pad * 2) / Math.max(1, maxY - minY),
+        1.5,
+      );
+      fit = {
+        s,
+        ox: w / 2 - ((minX + maxX) / 2) * s,
+        oy: h / 2 - ((minY + maxY) / 2) * s,
+      };
+    }
+
+    /**
+     * Compose fit + zoom + pan into the transform everything else reads.
+     *
+     * The zoom is taken about the centre of the canvas, so that with pan at
+     * zero the middle of the graph stays in the middle as it scales.
+     */
+    function syncView(w: number, h: number) {
+      view = {
+        s: fit.s * zoom,
+        ox: (fit.ox - w / 2) * zoom + w / 2 + pan.x,
+        oy: (fit.oy - h / 2) * zoom + h / 2 + pan.y,
+      };
+    }
+
+    /**
+     * Keep the cloud from being pushed out of its own frame.
+     *
+     * The boundary is the canvas: the transformed bounding box must always
+     * overlap it by at least a margin on each axis, so there is no way to pan
+     * into blank space and lose the graph with no obvious way back. When the
+     * scaled graph is smaller than the canvas on an axis it is simply centred
+     * on that axis instead of being allowed to drift.
+     */
+    function clampPan(w: number, h: number) {
+      if (!nodes.length) return;
+      const { minX, maxX, minY, maxY } = bounds();
+      const s = fit.s * zoom;
+      const MARGIN = 60;
+
+      const axis = (lo: number, hi: number, fitOff: number, size: number, p: number) => {
+        // Screen extent of the cloud at the current zoom, before this pan.
+        const a = lo * s + (fitOff - size / 2) * zoom + size / 2;
+        const b = hi * s + (fitOff - size / 2) * zoom + size / 2;
+        if (b - a <= size) {
+          // The whole cloud fits on this axis, so there is nothing to pan to:
+          // centre it. This is what pins the fitted view in place at zoom 1.
+          return size / 2 - (a + b) / 2;
+        }
+        // Bigger than the frame: pan freely, but keep at least MARGIN of the
+        // cloud on screen at each end. After panning by p the extent is
+        // [a + p, b + p], so the near edge must not pass size - MARGIN and the
+        // far edge must not pass MARGIN.
+        return Math.min(size - MARGIN - a, Math.max(MARGIN - b, p));
+      };
+
+      pan = {
+        x: axis(minX, maxX, fit.ox, w, pan.x),
+        y: axis(minY, maxY, fit.oy, h, pan.y),
+      };
+    }
+
+    /**
+     * Zoom by `factor`, keeping the world point under (px, py) fixed there.
+     * Returns false when the zoom was already at its limit and nothing moved,
+     * so a caller that also panned knows it still owes a repaint.
+     */
+    function zoomAt(px: number, py: number, factor: number) {
+      const w = canvas!.clientWidth;
+      const h = canvas!.clientHeight;
+      const next = Math.min(maxZoom, Math.max(MIN_ZOOM, zoom * factor));
+      if (next === zoom) return false;
+
+      // The world point currently under the pointer.
+      syncView(w, h);
+      const wx = (px - view.ox) / view.s;
+      const wy = (py - view.oy) / view.s;
+
+      zoom = next;
+      // Solve for the pan that puts that same world point back under (px, py).
+      pan = {
+        x: px - wx * fit.s * zoom - (fit.ox - w / 2) * zoom - w / 2,
+        y: py - wy * fit.s * zoom - (fit.oy - h / 2) * zoom - h / 2,
+      };
+      clampPan(w, h);
+      syncView(w, h);
+      reflectZoom();
+      draw();
+      return true;
+    }
+
+    /** Back to the fitted view. */
+    function resetCamera() {
+      zoom = 1;
+      pan = { x: 0, y: 0 };
+      reflectZoom();
+      draw();
+    }
+
+    /** Mirror the camera into the controls: level, limits, and the reset. */
+    function reflectZoom() {
+      if (level) level.textContent = `${Math.round(zoom * 100)}%`;
+      root.querySelectorAll<HTMLButtonElement>('[data-shelf-zoom]').forEach((btn) => {
+        const kind = btn.dataset.shelfZoom;
+        if (kind === 'in') btn.disabled = zoom >= maxZoom - 0.001;
+        else if (kind === 'out') btn.disabled = zoom <= MIN_ZOOM + 0.001;
+        // Reset stays out of the way until there is something to reset.
+        else if (kind === 'reset') btn.hidden = !cameraMoved();
+      });
+    }
 
     const radius = (n: Node) =>
       n.kind === 'item' ? 6 + Math.min(4, n.deg * 0.7) : 2.4 + Math.min(3.6, n.deg * 0.7);
@@ -434,6 +708,16 @@ const items = await shelfItems();
       calm = 0;
       hover = -1;
       drag = -1;
+      // A rebuild is a different graph; a camera aimed at the old one means
+      // nothing. Reset before the first fit rather than leaving a stale zoom.
+      zoom = 1;
+      pan = { x: 0, y: 0 };
+      setMaxZoom();
+      pointers.clear();
+      pinch = null;
+      panning = null;
+      refit(canvas!.clientWidth, canvas!.clientHeight);
+      reflectZoom();
       readout!.textContent = `${itemCount} ${itemCount === 1 ? 'entry' : 'entries'} · ${tagCount} ${
         tagCount === 1 ? 'tag' : 'tags'
       } · ${links.length} links`;
@@ -563,17 +847,30 @@ const items = await shelfItems();
         Entries are placed first so a tag never displaces a title. Anything
         dropped is still reachable by hovering the node. */
     function placeLabels(order: number[], occupied: Rect[], w: number, h: number) {
-      const placed: Array<{ i: number; rect: Rect; align: CanvasTextAlign; tx: number }> = [];
+      const placed: Array<{
+        i: number; rect: Rect; align: CanvasTextAlign; tx: number; text: string;
+      }> = [];
 
       for (const i of order) {
         const n = nodes[i];
         const item = n.kind === 'item';
-        ctx.font = labelFont(item, w);
-        const text = item ? n.label : n.label.toUpperCase();
+        ctx.font = labelFont(item, w, zoom);
+        // 16px of margin each side, matching the bounds check below.
+        const text = fitText(ctx, item ? n.label : n.label.toUpperCase(), w - 32);
         const tw = ctx.measureText(text).width;
-        const th = item ? (w < 560 ? 16 : 15) : w < 560 ? 13 : 11;
+        // Line box tracks the type size, or the placement rectangles stop
+        // matching what actually gets painted into them.
+        const th = baseLabelSize(item, w) * labelScale(zoom) + 1.5;
         const cx = n.x * view.s + view.ox;
         const cy = n.y * view.s + view.oy;
+        // A node off the edge can still have a slot that lands inside, which
+        // paints a title with no dot under it — at high zoom the label of a
+        // node well outside the frame was the only thing on screen. A label
+        // belongs to its node, so it goes when the node does.
+        if (cx < 0 || cy < 0 || cx > w || cy > h) {
+          n.slot = -1;
+          continue;
+        }
         const r = radius(n) + 5;
 
         const slots: Array<{ rect: Rect; align: CanvasTextAlign; tx: number }> = [
@@ -613,7 +910,7 @@ const items = await shelfItems();
           const pad = { x: x - 3, y: y - 2, w: rw + 6, h: rh + 4 };
           if (occupied.some((o) => overlaps(pad, o))) continue;
           occupied.push(pad);
-          placed.push({ i, ...slot });
+          placed.push({ i, ...slot, text });
           took = k;
           break;
         }
@@ -637,37 +934,25 @@ const items = await shelfItems();
         return;
       }
 
-      /* Fit the current cloud into the box, leaving a margin for labels.
+      /* Re-fit only while the layout is still moving into place, and never
+         during a drag.
 
-         Frozen for the duration of a drag. This transform is derived from the
-         node bounding box, and the drag handler inverts it to turn a pointer
-         position back into world coordinates — so recomputing it mid-drag is a
-         feedback loop: pulling a node outward grows the box, which shrinks the
-         scale, which re-maps the same finger position to a different world
-         point, which moves the node again. On a phone, where a drag crosses
-         most of the canvas, that reads as the whole graph lurching around.
-         Holding the view still means the node tracks the finger exactly and
-         the re-fit happens once, on release. */
-      if (drag < 0) {
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const n of nodes) {
-          minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
-          minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
-        }
-        // Labels need room to sit outside the cloud; less of it on a narrow
-        // canvas, where 64px a side is most of the width.
-        const pad = w < 560 ? 40 : 64;
-        const s = Math.min(
-          (w - pad * 2) / Math.max(1, maxX - minX),
-          (h - pad * 2) / Math.max(1, maxY - minY),
-          1.5,
-        );
-        view = {
-          s,
-          ox: w / 2 - ((minX + maxX) / 2) * s,
-          oy: h / 2 - ((minY + maxY) / 2) * s,
-        };
-      }
+         The fit is derived from the node bounding box, and the drag handler
+         inverts the composed transform to turn a pointer position back into
+         world coordinates — so recomputing it mid-drag is a feedback loop:
+         pulling a node outward grows the box, which shrinks the scale, which
+         re-maps the same finger position to a different world point, which
+         moves the node again. On a phone, where a drag crosses most of the
+         canvas, that reads as the whole graph lurching around.
+
+         Freezing it once settled also means dragging one node no longer
+         rescales everything around it, and the reader's own zoom is not
+         quietly re-based underneath them. Resize and rebuild re-fit
+         explicitly. */
+      if (!settled && drag < 0) refit(w, h);
+      if (drag < 0 && !pinch) clampPan(w, h);
+      syncView(w, h);
+
       const X = (n: Node) => n.x * view.s + view.ox;
       const Y = (n: Node) => n.y * view.s + view.oy;
 
@@ -729,14 +1014,16 @@ const items = await shelfItems();
       for (const p of placeLabels(candidates, occupied, w, h)) {
         const n = nodes[p.i];
         const item = n.kind === 'item';
-        const text = item ? n.label : n.label.toUpperCase();
+        // Already trimmed to the measured width — re-deriving it here would
+        // paint a wider string than the box that was reserved for it.
+        const text = p.text;
 
         // Paint the page colour behind the text so a label crossing a link
         // stays readable without a box or a halo around it.
         ctx.fillStyle = colors.bg;
         ctx.fillRect(p.rect.x - 2, p.rect.y - 1, p.rect.w + 4, p.rect.h + 2);
 
-        ctx.font = labelFont(item, w);
+        ctx.font = labelFont(item, w, zoom);
         ctx.fillStyle = withAlpha(hue(n.hue), (item ? 1 : 0.9) * fade);
         ctx.textAlign = p.align;
         ctx.textBaseline = 'top';
@@ -744,7 +1031,15 @@ const items = await shelfItems();
       }
     }
 
-    const ctx = fitCanvas(canvas, cleanups, () => draw());
+    // A resize changes what "fitted" means, so re-derive the automatic layer
+    // even after the layout has settled — the reader's zoom is a multiplier on
+    // top of it and survives untouched. Re-clamping the pan afterwards keeps a
+    // zoomed-in view from ending up outside a canvas that just got smaller.
+    const ctx = fitCanvas(canvas, cleanups, () => {
+      refit(canvas.clientWidth, canvas.clientHeight);
+      clampPan(canvas.clientWidth, canvas.clientHeight);
+      draw();
+    });
 
     function run() {
       cancelAnimationFrame(anim);
@@ -795,12 +1090,61 @@ const items = await shelfItems();
       drag = -1;
       canvas!.classList.remove('is-grabbing');
       if (e && canvas!.hasPointerCapture(e.pointerId)) canvas!.releasePointerCapture(e.pointerId);
-      // The view was frozen for the drag — let it re-fit around where the node
-      // was actually left.
       run();
     }
 
+    /** Pointer position in canvas coordinates. */
+    function local(e: PointerEvent) {
+      const rect = canvas!.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    /** The span and midpoint of the two live pointers, for a pinch. */
+    function span() {
+      const [a, b] = Array.from(pointers.values());
+      return {
+        dist: Math.hypot(a.x - b.x, a.y - b.y),
+        mx: (a.x + b.x) / 2,
+        my: (a.y + b.y) / 2,
+      };
+    }
+
     on(canvas, 'pointermove', (e) => {
+      const p = local(e);
+      if (pointers.has(e.pointerId)) pointers.set(e.pointerId, p);
+
+      // A pinch outranks everything else: two fingers are never a node drag.
+      if (pinch && pointers.size === 2) {
+        const now = span();
+        if (pinch.dist > 0) {
+          const w = canvas!.clientWidth;
+          const h = canvas!.clientHeight;
+          // Follow the midpoint first, so two fingers moving together pan…
+          pan.x += now.mx - pinch.mx;
+          pan.y += now.my - pinch.my;
+          // …then scale about where the midpoint now is, so the graph grows
+          // out of the gesture rather than out of the middle of the canvas.
+          // zoomAt clamps, syncs and repaints; if it was already at a limit
+          // the pan above still needs applying.
+          if (!zoomAt(now.mx, now.my, now.dist / pinch.dist)) {
+            clampPan(w, h);
+            syncView(w, h);
+            draw();
+          }
+        }
+        pinch = now;
+        return;
+      }
+
+      if (panning) {
+        pan.x += p.x - panning.x;
+        pan.y += p.y - panning.y;
+        panning = p;
+        clampPan(canvas!.clientWidth, canvas!.clientHeight);
+        draw();
+        return;
+      }
+
       const { i, px, py } = pick(e);
       if (drag >= 0) {
         moved++;
@@ -821,10 +1165,29 @@ const items = await shelfItems();
         if (alpha <= 0.02) draw();
       }
     }, cleanups);
+
     on(canvas, 'pointerdown', (e) => {
+      pointers.set(e.pointerId, local(e));
+
+      // Second finger down: whatever the first one was doing becomes a pinch.
+      if (pointers.size === 2) {
+        endDrag();
+        panning = null;
+        pinch = span();
+        canvas.classList.add('is-grabbing');
+        return;
+      }
+      if (pointers.size > 2) return;
+
       const { i } = pick(e);
       if (i < 0) {
-        // Tapping the background clears a touch isolation.
+        // Empty space drags the camera. Below the fit zoom there is nothing to
+        // pan to — clampPan would undo it — so this only bites once zoomed in,
+        // which is exactly when it is wanted.
+        panning = local(e);
+        canvas.classList.add('is-grabbing');
+        canvas.setPointerCapture(e.pointerId);
+        // A press on the background also clears a touch isolation.
         if (e.pointerType !== 'mouse' && hover !== -1) {
           hover = -1;
           draw();
@@ -840,8 +1203,30 @@ const items = await shelfItems();
       alpha = Math.max(alpha, 0.3);
       run();
     }, cleanups);
+
+    /** Shared by pointerup and pointercancel: forget this pointer, and end
+        whatever gesture it was part of. */
+    function releasePointer(e: PointerEvent) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = null;
+      if (pointers.size === 0) {
+        panning = null;
+        canvas!.classList.remove('is-grabbing');
+      }
+      if (canvas!.hasPointerCapture(e.pointerId)) canvas!.releasePointerCapture(e.pointerId);
+    }
+
     on(canvas, 'pointerup', (e) => {
+      const wasPinching = pinch !== null || pointers.size > 1;
+      const wasPanning = panning !== null;
+      releasePointer(e);
+      // Lifting one finger of a pinch is not a tap on whatever is underneath.
+      if (wasPinching || wasPanning) {
+        endDrag(e);
+        return;
+      }
       if (drag < 0) return;
+
       const n = nodes[drag];
       const i = drag;
       // A quick press that didn't travel is a click, not a drag.
@@ -864,11 +1249,16 @@ const items = await shelfItems();
       hover = i;
       draw();
     }, cleanups);
+
     // A touch that the browser decides to turn into a page scroll (see
     // touch-action: pan-y) cancels the pointer instead of ending it. Without
     // this the node stays pinned and `drag` stays set, so the next finger
     // anywhere on the canvas drags that node around.
-    on(canvas, 'pointercancel', (e) => endDrag(e), cleanups);
+    on(canvas, 'pointercancel', (e) => {
+      releasePointer(e);
+      endDrag(e);
+    }, cleanups);
+
     on(canvas, 'pointerleave', (e) => {
       // Mouse only. A touch pointer stops existing when the finger lifts, so it
       // fires leave immediately after every tap — which would clear the
@@ -879,6 +1269,44 @@ const items = await shelfItems();
         if (alpha <= 0.02) draw();
       }
     }, cleanups);
+
+    /**
+     * Trackpad and mouse wheel.
+     *
+     * A pinch on a trackpad arrives as a wheel event with ctrlKey set — that is
+     * the platform convention every browser follows, and it is also what
+     * Cmd/Ctrl + wheel sends. Those zoom. A plain wheel is left alone so the
+     * page keeps scrolling normally: hijacking it would re-create the scroll
+     * trap this widget just got rid of, on desktop.
+     */
+    on(canvas, 'wheel', (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const rect = canvas!.getBoundingClientRect();
+      // deltaMode 1 is lines rather than pixels (Firefox); normalise so one
+      // notch is a comparable step in both.
+      const unit = e.deltaMode === 1 ? 16 : 1;
+      zoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY * unit * 0.01));
+    }, cleanups, { passive: false });
+
+    // Double-click / double-tap steps in, and steps back out at the top.
+    on(canvas, 'dblclick', (e) => {
+      const rect = canvas!.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (zoom >= maxZoom - 0.01) resetCamera();
+      else zoomAt(px, py, 2);
+    }, cleanups);
+
+    // The buttons zoom about the centre of the canvas, which is the only
+    // sensible anchor when the gesture carries no position of its own.
+    root.querySelectorAll<HTMLButtonElement>('[data-shelf-zoom]').forEach((btn) => {
+      on(btn, 'click', () => {
+        const kind = btn.dataset.shelfZoom;
+        if (kind === 'reset') return resetCamera();
+        zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, kind === 'in' ? 1.5 : 1 / 1.5);
+      }, cleanups);
+    });
 
     onThemeChange(() => {
       colors = palette();
