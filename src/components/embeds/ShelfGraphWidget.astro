@@ -43,11 +43,8 @@ const items = await shelfItems();
     data-shelf-items={JSON.stringify(items)}></canvas>
   <ul class="sg-legend" data-shelf-legend></ul>
   <figcaption class="sg-note">
-    Pinch or ⌘/Ctrl-scroll to zoom in on a corner — titles grow and crowded ones
-    reappear as the graph opens up. Drag the background to move around, drag a
-    node to pull the rest along. On a mouse, hover a node to isolate what it
-    touches and click an entry to open it; on a touchscreen, tap a node to
-    isolate it and tap it again to open.
+    Pinch or ctrl-scroll to zoom, drag to look around. Hover a node (tap on a
+    phone) to see what it links to. Click or tap again to open an entry.
   </figcaption>
 </figure>
 
@@ -124,13 +121,15 @@ const items = await shelfItems();
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
-    /* pan-y, not none: `none` meant a finger starting anywhere on the canvas
-       never scrolled the page, so on a phone this 400px block trapped the
-       reader inside it. Vertical scrolling now passes through, while
-       horizontal movement still reaches the drag handler. The browser cancels
-       the pointer when it takes over the scroll — see the pointercancel
-       handler, without which the node stays stuck to the finger. */
-    touch-action: pan-y;
+    /* The graph owns every touch on it.
+       `pan-y` was tried first, to keep the page scrolling through the canvas,
+       but it hands vertical movement to the browser — which means it steals
+       half of every pinch and cancels the gesture partway, and one-finger
+       panning never works at all. There is no reading a graph you cannot
+       move. The page is still scrollable from anywhere around the canvas: it
+       is well under half the height of a phone screen, with the controls,
+       legend and caption above and below it. */
+    touch-action: none;
     cursor: grab;
   }
   .sg-canvas.is-grabbing {
@@ -178,12 +177,17 @@ const items = await shelfItems();
     text-align: center;
   }
 
-  /* Taller rather than shorter on a phone. The canvas is much narrower here,
-     so the layout has to stack vertically, and label placement gives up on any
-     label it can't fit without overlapping — height is what buys those back. */
+  /* Taller rather than shorter on a phone: the canvas is much narrower here, so
+     the layout has to stack vertically, and label placement gives up on any
+     label it cannot fit without overlapping. Height is what buys those back.
+
+     Capped against the viewport as well as in pixels, because the graph now
+     takes every touch that lands on it. On a tall phone that is the full
+     460px; on a short one it gives way, so there is always page either side of
+     the canvas to scroll the article from. */
   @media (max-width: 720px) {
     .sg-canvas {
-      height: 460px;
+      height: min(460px, 58svh);
     }
   }
 </style>
@@ -481,10 +485,12 @@ const items = await shelfItems();
      * an otherwise blank canvas — past the point where zooming tells you
      * anything. A denser collection genuinely needs to go further in, so it
      * scales with the node count and stops at 6×. */
-    const MIN_ZOOM = 1;
-    let maxZoom = 3;
+    // Below 1 the whole graph is smaller than its frame, which is a useful
+    // place to stand back from a dense shelf rather than a way to get lost.
+    const MIN_ZOOM = 0.5;
+    let maxZoom = 8;
     const setMaxZoom = () => {
-      maxZoom = Math.min(6, Math.max(3, nodes.length / 6));
+      maxZoom = Math.min(16, Math.max(8, nodes.length / 3));
     };
 
     /** Whether the reader has taken the camera off its default. */
@@ -534,40 +540,53 @@ const items = await shelfItems();
     }
 
     /**
-     * Keep the cloud from being pushed out of its own frame.
+     * Bound the camera by how far it can drift from the nearest node.
      *
-     * The boundary is the canvas: the transformed bounding box must always
-     * overlap it by at least a margin on each axis, so there is no way to pan
-     * into blank space and lose the graph with no obvious way back. When the
-     * scaled graph is smaller than the canvas on an axis it is simply centred
-     * on that axis instead of being allowed to drift.
+     * The rule is on the world point in the middle of the canvas: it must stay
+     * within a fraction of a screen of some node. That is deliberately not a
+     * bounding-box rule. Keeping the view inside the box sounds equivalent and
+     * is not, because this graph is sparse: at 7x on a phone the window covers
+     * about 90 units of a box 490 wide, so it can sit entirely between nodes,
+     * well inside the box, showing nothing at all. That is precisely how you
+     * get lost, and a box test cannot see it.
+     *
+     * Measuring against the nearest node instead gives one rule that holds at
+     * every zoom: whatever you do, something is on screen and it is never more
+     * than a third of a screen from the middle. Within that, the camera is
+     * free. Any node can be brought to the centre from any zoom, which is what
+     * makes exploring a corner actually work.
      */
     function clampPan(w: number, h: number) {
       if (!nodes.length) return;
-      const { minX, maxX, minY, maxY } = bounds();
       const s = fit.s * zoom;
-      const MARGIN = 60;
+      const baseX = (fit.ox - w / 2) * zoom + w / 2;
+      const baseY = (fit.oy - h / 2) * zoom + h / 2;
 
-      const axis = (lo: number, hi: number, fitOff: number, size: number, p: number) => {
-        // Screen extent of the cloud at the current zoom, before this pan.
-        const a = lo * s + (fitOff - size / 2) * zoom + size / 2;
-        const b = hi * s + (fitOff - size / 2) * zoom + size / 2;
-        if (b - a <= size) {
-          // The whole cloud fits on this axis, so there is nothing to pan to:
-          // centre it. This is what pins the fitted view in place at zoom 1.
-          return size / 2 - (a + b) / 2;
+      // What the middle of the canvas is pointed at, in world coordinates.
+      let lx = (w / 2 - (baseX + pan.x)) / s;
+      let ly = (h / 2 - (baseY + pan.y)) / s;
+
+      // A third of the smaller side of the frame, in world units, so the reach
+      // is the same fraction of the screen however far in the reader has gone.
+      const reach = (Math.min(w, h) / s) * 0.34;
+
+      let near: Node | null = null;
+      let nearD = Infinity;
+      for (const n of nodes) {
+        const d = Math.hypot(n.x - lx, n.y - ly);
+        if (d < nearD) {
+          nearD = d;
+          near = n;
         }
-        // Bigger than the frame: pan freely, but keep at least MARGIN of the
-        // cloud on screen at each end. After panning by p the extent is
-        // [a + p, b + p], so the near edge must not pass size - MARGIN and the
-        // far edge must not pass MARGIN.
-        return Math.min(size - MARGIN - a, Math.max(MARGIN - b, p));
-      };
+      }
+      // Too far out: slide straight back toward that node until it is in reach.
+      if (near && nearD > reach) {
+        const k = reach / nearD;
+        lx = near.x + (lx - near.x) * k;
+        ly = near.y + (ly - near.y) * k;
+      }
 
-      pan = {
-        x: axis(minX, maxX, fit.ox, w, pan.x),
-        y: axis(minY, maxY, fit.oy, h, pan.y),
-      };
+      pan = { x: w / 2 - lx * s - baseX, y: h / 2 - ly * s - baseY };
     }
 
     /**
@@ -1250,10 +1269,10 @@ const items = await shelfItems();
       draw();
     }, cleanups);
 
-    // A touch that the browser decides to turn into a page scroll (see
-    // touch-action: pan-y) cancels the pointer instead of ending it. Without
-    // this the node stays pinned and `drag` stays set, so the next finger
-    // anywhere on the canvas drags that node around.
+    // A pointer can still be cancelled out from under us — the system taking
+    // over for a call, an edge swipe, a palm rejection. Without this the node
+    // stays pinned and `drag` stays set, so the next finger anywhere on the
+    // canvas drags that node around.
     on(canvas, 'pointercancel', (e) => {
       releasePointer(e);
       endDrag(e);
@@ -1304,7 +1323,7 @@ const items = await shelfItems();
       on(btn, 'click', () => {
         const kind = btn.dataset.shelfZoom;
         if (kind === 'reset') return resetCamera();
-        zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, kind === 'in' ? 1.5 : 1 / 1.5);
+        zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, kind === 'in' ? 1.6 : 1 / 1.6);
       }, cleanups);
     });
 
