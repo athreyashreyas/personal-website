@@ -191,8 +191,41 @@ const {
     .lw-panes {
       grid-template-columns: 1fr;
     }
+
+    /*
+     * A fixed height, not a floor.
+     *
+     * Side by side the two panes grow together and stay level, so text
+     * arriving is harmless. Stacked, it is not: A's paragraph streamed in
+     * and pushed B down the page, taking the widget from 528px to 885px in
+     * a 780px viewport. The comparison — A already writing while B is still
+     * waiting — is the entire point, and it was happening off screen by the
+     * time B started.
+     *
+     * Pinning the height keeps both panes in view and the layout completely
+     * still while it runs. Clipping the tail costs nothing: what is being
+     * demonstrated is WHEN text starts, not what it says, and the timings
+     * below each pane stay visible either way.
+     */
     .lw-body {
-      min-height: 6rem;
+      flex: none;
+      min-height: 0;
+      height: 6rem;
+      overflow: hidden;
+      /* Fades the clip instead of guillotining a line of text mid-stroke. */
+      mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+    }
+
+    /* Comfortable to hit with a thumb — 28px tall was not. */
+    .lw-btn {
+      min-height: 2.75rem;
+      padding-inline: 1.1em;
+    }
+
+    /* The native thumb is bigger than the track, but the input's own box is
+       what takes the touch, so it gets padded out to a real target. */
+    .lw-field input[type='range'] {
+      height: 2.25rem;
     }
   }
 </style>
