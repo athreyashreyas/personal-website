@@ -19,13 +19,68 @@ const tagLabels = new Map((await getCollection('tags')).map((t) => [t.id, t.data
 const rendered = await Promise.all(
   items.map(async (item) => ({ item, Content: (await render(item)).Content })),
 );
+
+// The filter bar's chips: every tag some recommendation on this page carries,
+// most-used first. Built from these entries rather than from lib/tags' usedTags
+// because a tag only worth showing here is one that filters *this* list — a
+// chip that hides everything would be a bug, not a filter.
+const counts = new Map<string, number>();
+for (const { item } of rendered) {
+  for (const tag of item.data.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+}
+/** How many chips stay visible before the rest collapse behind "+N more". */
+const VISIBLE_CHIPS = 8;
+
+const filterTags = [...counts.entries()]
+  .map(([id, count]) => ({ id, label: tagLabels.get(id) ?? id, count }))
+  .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 ---
 
 <BaseLayout title="Recommendations">
   <header class="page-head">
     <h1><span class="hl-title">Recommendations</span></h1>
     <p class="page-sub">Books, links, tools, and interesting things worth your time.</p>
+    <p class="head-links meta">
+      <a href="/tags">Browse by tag across the whole site</a>
+    </p>
   </header>
+
+  {/* Filtering happens in the browser over markup that is already on the page:
+      the list is small, and a static site has nowhere to run a query anyway.
+      Rendered as links to /tags/<id> so the bar works with JS off and so each
+      chip is a real, followable destination — the script intercepts the click
+      and filters in place instead. */}
+  {
+    filterTags.length > 0 && (
+      <div class="filters" data-rec-filters>
+        <button class="chip" type="button" data-filter="" aria-pressed="true">
+          All <span class="count">{rendered.length}</span>
+        </button>
+        {filterTags.map((tag, i) => (
+          <a
+            class="chip"
+            href={`/tags/${tag.id}`}
+            data-filter={tag.id}
+            aria-pressed="false"
+            data-overflow={i >= VISIBLE_CHIPS ? '' : undefined}
+          >
+            {tag.label} <span class="count">{tag.count}</span>
+          </a>
+        ))}
+        {/* The vocabulary is already larger than the collection, and every new
+            recommendation tends to bring a tag with it — unbounded, this bar
+            grows into seven rows of chrome above the first entry on a phone.
+            The tail collapses behind this, which is inert without JS: the
+            chips it hides are visible by default and only get hidden once the
+            script has something to expand them with. */}
+        {filterTags.length > VISIBLE_CHIPS && (
+          <button class="chip more" type="button" data-chip-more hidden>
+            +{filterTags.length - VISIBLE_CHIPS} more
+          </button>
+        )}
+      </div>
+    )
+  }
 
   {
     rendered.length === 0 ? (
@@ -33,7 +88,10 @@ const rendered = await Promise.all(
     ) : (
       <ul class="rec-list">
         {rendered.map(({ item, Content }) => (
-          <li>
+          // The id is what search results, tag pages, the related strips and
+          // the Lab shelf graph all link to — a recommendation has no page of
+          // its own, so its note in this list is the destination.
+          <li id={item.id} data-tags={item.data.tags.join(' ')}>
             <div class="row">
               {item.data.url ? (
                 <a class="name" href={item.data.url} target="_blank" rel="noopener">
@@ -48,7 +106,11 @@ const rendered = await Promise.all(
               item.data.tags && item.data.tags.length > 0 && (
                 <ul class="tags">
                   {item.data.tags.map((tag) => (
-                    <li>{tagLabels.get(tag) ?? tag}</li>
+                    <li>
+                      <a href={`/tags/${tag}`} data-filter={tag}>
+                        {tagLabels.get(tag) ?? tag}
+                      </a>
+                    </li>
                   ))}
                 </ul>
               )
@@ -61,11 +123,18 @@ const rendered = await Promise.all(
       </ul>
     )
   }
+
+  <p class="no-match meta" data-rec-empty hidden>
+    Nothing here carries that tag.
+  </p>
 </BaseLayout>
 
 <style>
+  /* Tighter than the other pages' headers: what follows is the filter bar,
+     and the "browse by tag" link below belongs with it rather than with the
+     heading — see .head-links. */
   .page-head {
-    margin-bottom: 2.5rem;
+    margin-bottom: 1rem;
   }
   .page-sub {
     margin: 0.1rem 0 0;
@@ -84,6 +153,31 @@ const rendered = await Promise.all(
   .rec-list > li {
     padding: 1.5rem 0;
     border-top: 1px solid var(--border);
+    /* Clears the sticky header (tablet and phone, see global.css) so a linked
+       entry doesn't land underneath it. Harmless on desktop, where the header
+       scrolls away — it just leaves a little air above the row. */
+    scroll-margin-top: 5rem;
+  }
+
+  /* A brief tint on the row you were sent to, so it is obvious which of the
+     entries the link meant. Fades out rather than persisting, since :target
+     sticks around for the whole visit. */
+  .rec-list > li:target {
+    animation: rec-landed 2.4s ease-out;
+  }
+
+  @keyframes rec-landed {
+    from {
+      background: color-mix(in srgb, var(--accent-link) 20%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rec-list > li:target {
+      animation: none;
+      border-left: 2px solid var(--accent-link);
+      padding-left: 0.75rem;
+    }
   }
   .rec-list > li:last-child {
     border-bottom: 1px solid var(--border);
@@ -152,4 +246,218 @@ const rendered = await Promise.all(
   .tags + .note {
     margin-top: 0.6rem;
   }
+
+  /* Filtering chrome, not part of the heading block — so it sits away from
+     the dek above it and close to the chips below, which is the group it
+     actually belongs to. */
+  .head-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.4rem 0 0;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4em;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.35em 0.65em;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 1.4;
+  }
+
+  /* Only collapsed once the script has revealed the toggle — see the note in
+     the markup for why the no-JS case shows everything instead. */
+  .filters:not(.expanded) .chip[data-overflow] {
+    display: none;
+  }
+
+  .chip.more {
+    border-style: dashed;
+  }
+
+  /* .chip sets `display`, which is an author style and therefore beats the UA
+     stylesheet's `[hidden] { display: none }` outright — without this the
+     toggle stays on screen both before the script reveals it and after it has
+     done its job. */
+  .chip[hidden] {
+    display: none;
+  }
+
+  .chip .count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+  }
+
+  @media (hover: hover) {
+    .chip:hover {
+      color: var(--accent-link);
+      border-color: var(--accent-link);
+      text-decoration: none;
+    }
+  }
+
+  .chip[aria-pressed='true'] {
+    color: var(--accent-link);
+    border-color: var(--accent-link);
+    background: color-mix(in srgb, var(--accent-link) 12%, transparent);
+  }
+
+  /* The per-entry tags filter this page rather than leaving it (the script
+     intercepts them), so they get a hover affordance but keep the plain
+     metadata look — they are not chips. */
+  .tags a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  @media (hover: hover) {
+    .tags a:hover {
+      color: var(--accent-link);
+    }
+  }
+
+  .no-match {
+    margin-top: 1.5rem;
+  }
 </style>
+
+<script>
+  /**
+   * Tag filtering for the recommendations list.
+   *
+   * Every entry is already in the DOM — this only sets `hidden` on the rows
+   * that don't match, which is why it stays instant and needs no index.
+   *
+   * The chips are real links to /tags/<id>. Without JS they navigate there,
+   * which is a reasonable destination; with JS a plain click is intercepted
+   * and filters in place instead. Modified clicks (cmd, ctrl, shift, middle)
+   * are left alone so "open in new tab" still reaches the cross-collection
+   * tag page.
+   *
+   * The active tag is mirrored into ?tag= with replaceState rather than
+   * pushState: ClientRouter owns popstate, and pushing same-page entries into
+   * its history would have it treat a back press as a navigation to re-run.
+   * The URL stays copyable either way, which is the point of syncing it.
+   */
+  function initRecFilters() {
+    const barEl = document.querySelector<HTMLElement>('[data-rec-filters]');
+    const listEl = document.querySelector<HTMLElement>('.rec-list');
+    if (!barEl || !listEl) return;
+    // Aliased after the guard — see the same note in SearchPalette.astro.
+    const bar = barEl;
+    const list = listEl;
+
+    const rows = Array.from(list.querySelectorAll<HTMLElement>('li[data-tags]'));
+    const empty = document.querySelector<HTMLElement>('[data-rec-empty]');
+
+    function apply(tag: string, updateUrl = true) {
+      let matches = 0;
+      for (const row of rows) {
+        const tags = (row.dataset.tags ?? '').split(' ').filter(Boolean);
+        const show = tag === '' || tags.includes(tag);
+        row.hidden = !show;
+        if (show) matches += 1;
+      }
+
+      // aria-pressed rather than a class: the chips are toggles, and this is
+      // the state a screen reader announces.
+      for (const chip of bar.querySelectorAll<HTMLElement>('[data-filter]')) {
+        chip.setAttribute('aria-pressed', String((chip.dataset.filter ?? '') === tag));
+      }
+
+      if (empty) empty.hidden = matches > 0;
+
+      // A ?tag= deep link can name a tag in the collapsed tail; showing the
+      // list filtered by a chip you cannot see would read as a broken page.
+      const activeChip = bar.querySelector<HTMLElement>(`[data-filter="${CSS.escape(tag)}"]`);
+      if (tag && activeChip?.hasAttribute('data-overflow')) expand();
+
+      if (updateUrl) {
+        const url = new URL(window.location.href);
+        if (tag) url.searchParams.set('tag', tag);
+        else url.searchParams.delete('tag');
+        history.replaceState(history.state, '', url);
+      }
+    }
+
+    function onClick(event: MouseEvent) {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.button !== 0) return;
+
+      const trigger = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-filter]');
+      if (!trigger) return;
+
+      event.preventDefault();
+      const tag = trigger.dataset.filter ?? '';
+      // Clicking the tag you're already filtered to clears it, so the chips
+      // behave like toggles rather than a one-way trip through "All".
+      apply(bar.querySelector('[aria-pressed="true"]')?.getAttribute('data-filter') === tag ? '' : tag);
+    }
+
+    const moreButton = bar.querySelector<HTMLElement>('[data-chip-more]');
+
+    function expand() {
+      bar.classList.add('expanded');
+      if (moreButton) moreButton.hidden = true;
+    }
+
+    // Revealed by script, so the collapse never applies without it.
+    if (moreButton) {
+      moreButton.hidden = false;
+      moreButton.addEventListener('click', expand);
+    }
+
+    bar.addEventListener('click', onClick);
+    list.addEventListener('click', onClick);
+
+    /**
+     * Clear the filter if the row being linked to is one it is hiding.
+     *
+     * Arriving at /recommendations#some-entry from a search result or a tag
+     * page while a filter happens to be active would otherwise scroll to a
+     * hidden row — a blank stretch of page, with no clue that a filter is the
+     * reason. The link is the more specific intent, so it wins.
+     */
+    function revealTarget() {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (!id) return;
+      const row = rows.find((candidate) => candidate.id === id);
+      if (!row?.hidden) return;
+      apply('');
+      // The browser already gave up on scrolling to it while it was hidden.
+      row.scrollIntoView({ block: 'start' });
+    }
+
+    // Same-page hash changes fire no navigation, so astro:page-load won't run.
+    window.addEventListener('hashchange', revealTarget);
+
+    // A ?tag= already in the URL (a shared link, or a reload) wins on load.
+    // Not written back, since it is where the value came from.
+    const initial = new URL(window.location.href).searchParams.get('tag') ?? '';
+    const known = initial && bar.querySelector(`[data-filter="${CSS.escape(initial)}"]`);
+    apply(known ? initial : '', false);
+    revealTarget();
+  }
+
+  // Runs on first paint and after every view transition — the handlers above
+  // are bound to elements the router replaces, so they have to be rebound.
+  document.addEventListener('astro:page-load', initRecFilters);
+</script>

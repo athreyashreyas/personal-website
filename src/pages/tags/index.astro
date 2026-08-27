@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { usedTags } from '../../lib/tags';
+
+// Driven by what is actually tagged, not by the vocabulary: a tag entry
+// created in the CMS but not yet applied to anything has no page, so it
+// shouldn't be advertised here either.
+const tags = await usedTags();
+const total = tags.reduce((sum, tag) => sum + tag.count, 0);
+---
+
+<BaseLayout
+  title="Tags"
+  description="Every post, project, and recommendation on this site, grouped by idea."
+>
+  <header class="page-head">
+    <h1><span class="hl-title">Tags</span></h1>
+    <p class="page-sub">
+      Find what suits your fancy and search according to tags and themes.
+    </p>
+  </header>
+
+  {
+    tags.length === 0 ? (
+      <p class="meta">Nothing tagged yet.</p>
+    ) : (
+      <>
+        <ul class="tag-cloud">
+          {tags.map((tag) => (
+            <li>
+              <a href={`/tags/${tag.id}`}>
+                <span class="label">{tag.label}</span>
+                <span class="count">{tag.count}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="total meta">
+          {tags.length} tags across {total} tagged entries.
+        </p>
+      </>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.5rem;
+  }
+  .page-sub {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    max-width: var(--measure);
+  }
+
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tag-cloud li {
+    margin: 0;
+  }
+
+  .tag-cloud a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.55em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.4em 0.75em;
+    text-decoration: none;
+  }
+
+  .label {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    color: var(--text-primary);
+  }
+
+  .count {
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (hover: hover) {
+    .tag-cloud a:hover {
+      border-color: var(--accent-link);
+    }
+    .tag-cloud a:hover .label {
+      color: var(--accent-link);
+    }
+  }
+
+  .total {
+    margin-top: 2rem;
+  }
+</style>

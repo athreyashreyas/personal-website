@@ -6,5 +6,4 @@ Allow: /
 # unlinked from the site, so it should not turn up in a search result either.
 Disallow: /lab/previews
 
-# No Sitemap line yet: a sitemap has to list absolute URLs, which needs the
-# canonical domain set as `site` in astro.config.mjs. Add both together.
+Sitemap: https://shreyas-athreya.pages.dev/sitemap-index.xml

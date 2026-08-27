@@ -12,6 +12,8 @@ const writing = defineCollection({
   schema: z.object({
     title: z.string(),
     date: z.coerce.date(),
+    /** Ids from the `tags` collection below — the same vocabulary as
+     *  recommendations, which is what lets /tags/<id> mix the two. */
     tags: z.array(z.string()).default([]),
     draft: z.boolean().default(false),
     dek: optionalString,
@@ -24,6 +26,10 @@ const projects = defineCollection({
     title: z.string(),
     description: z.string(),
     status: optionalString,
+    /** Ids from the `tags` collection below. Optional, and empty on the
+     *  projects seeded before tags existed — those simply don't appear on a
+     *  tag page until someone tags them. */
+    tags: z.array(z.string()).default([]),
     links: z
       .object({
         repo: optionalUrl,

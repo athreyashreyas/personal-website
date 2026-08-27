@@ -26,6 +26,7 @@
   "dependencies": {
     "@astrojs/mdx": "^4.3.14",
     "@astrojs/react": "^4.4.2",
+    "@astrojs/sitemap": "^3.7.3",
     "@fontsource/newsreader": "^5.3.0",
     "@fontsource/plus-jakarta-sans": "^5.1.0",
     "@keystatic/astro": "^5.2.0",
@@ -33,7 +34,8 @@
     "astro": "^5.2.5",
     "js-yaml": "^4.3.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "satori": "^0.33.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

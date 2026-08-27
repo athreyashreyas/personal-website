@@ -1,0 +1,533 @@
+---
+// The site-wide search palette. Markup only — everything else is the script
+// below, which fetches /search.json the first time the palette is opened.
+//
+// transition:persist keeps this one element (and its bound listeners) across
+// view transitions, so the script binds once instead of rebinding on every
+// navigation.
+---
+
+<dialog class="palette" data-search aria-label="Search this site" transition:persist>
+  <form method="dialog" class="field">
+    <svg
+      class="glass"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.9"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="M20 20l-3.5-3.5"></path>
+    </svg>
+    <input
+      type="search"
+      data-search-input
+      placeholder="Search writing, projects, books…"
+      aria-label="Search"
+      autocomplete="off"
+      spellcheck="false"
+      enterkeyhint="go"
+    />
+    {/* A submit button inside a method="dialog" form closes the dialog with no
+        JS at all. It reads as "esc" where there is a keyboard and as a plain
+        ✕ on a phone, where "esc" names a key that does not exist. */}
+    <button type="submit" class="dismiss" aria-label="Close search">
+      <span class="dismiss-esc" aria-hidden="true">esc</span>
+      <svg
+        class="dismiss-x"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M6 6l12 12M18 6L6 18"></path>
+      </svg>
+    </button>
+  </form>
+
+  <div class="results" data-search-results role="listbox" aria-label="Results"></div>
+
+  {/* Keyboard-only, so it is hidden on phones (see the media query below).
+      The shortcut is listed here as well as on the nav trigger: this is the
+      moment someone is actually using search, and so the moment they are most
+      likely to register how to get back to it. Spelled per platform by the
+      is-apple script in SiteScripts. */}
+  <p class="hint" data-search-hint>
+    <span><kbd>↑</kbd><kbd>↓</kbd> to move</span>
+    <span class="sep" aria-hidden="true">·</span>
+    <span><kbd>↵</kbd> to open</span>
+    <span class="sep" aria-hidden="true">·</span>
+    <span><kbd class="kbd-mod"><span class="mod">Ctrl&nbsp;</span>K</kbd> to open or close</span>
+  </p>
+</dialog>
+
+<script>
+  type Doc = { t: string; s?: string; k: string; u: string; b?: string };
+
+  // Module scope, so the fetched index survives view transitions and reopening
+  // the palette — it is fetched at most once per full page load.
+  let docs: Doc[] | null = null;
+  let loading: Promise<Doc[]> | null = null;
+
+  function loadIndex(): Promise<Doc[]> {
+    if (docs) return Promise.resolve(docs);
+    loading ??= fetch('/search.json')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Doc[]) => (docs = data))
+      .catch(() => (docs = []));
+    return loading;
+  }
+
+  /** Every character of `q`, in order, somewhere in `text`. */
+  function isSubsequence(text: string, q: string): boolean {
+    let i = 0;
+    for (const ch of text) {
+      if (ch === q[i]) i += 1;
+      if (i === q.length) return true;
+    }
+    return q.length === 0;
+  }
+
+  /**
+   * How well one document answers one search term.
+   *
+   * The ladder is deliberate: a title match always outranks a body match, and
+   * a match at the start of a title outranks one buried in the middle, so
+   * typing "har" puts Harmony above a post that merely mentions it. A
+   * subsequence match scores last — it is what makes typos and abbreviations
+   * work at all, but it matches almost anything, so it must never outrank a
+   * real substring hit. 0 means "does not match".
+   */
+  function scoreTerm(doc: Doc, term: string): number {
+    const title = doc.t.toLowerCase();
+    if (title === term) return 1000;
+
+    const at = title.indexOf(term);
+    if (at === 0) return 600;
+    if (at > 0) return 400 - Math.min(at, 100);
+
+    if (doc.s?.toLowerCase().includes(term)) return 200;
+    if (doc.k.toLowerCase().includes(term)) return 120;
+    if (doc.b?.toLowerCase().includes(term)) return 90;
+    if (isSubsequence(title, term)) return 40;
+    return 0;
+  }
+
+  /** Every term has to match something; the scores add up. */
+  function search(all: Doc[], query: string): Doc[] {
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return [];
+
+    return all
+      .map((doc) => {
+        let total = 0;
+        for (const term of terms) {
+          const score = scoreTerm(doc, term);
+          if (score === 0) return { doc, total: 0 };
+          total += score;
+        }
+        return { doc, total };
+      })
+      .filter(({ total }) => total > 0)
+      .sort((a, b) => b.total - a.total || a.doc.t.localeCompare(b.doc.t))
+      .slice(0, 8)
+      .map(({ doc }) => doc);
+  }
+
+  function escapeHtml(value: string): string {
+    return value.replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!,
+    );
+  }
+
+  /** Escape first, then wrap the matched run — never the other way round. */
+  function highlight(text: string, query: string): string {
+    const term = query.toLowerCase().split(/\s+/).filter(Boolean)[0];
+    if (!term) return escapeHtml(text);
+    const at = text.toLowerCase().indexOf(term);
+    if (at === -1) return escapeHtml(text);
+    return (
+      escapeHtml(text.slice(0, at)) +
+      '<mark>' +
+      escapeHtml(text.slice(at, at + term.length)) +
+      '</mark>' +
+      escapeHtml(text.slice(at + term.length))
+    );
+  }
+
+  function initSearch() {
+    const found = document.querySelector<HTMLDialogElement>('[data-search]');
+    if (!found || found.dataset.bound === 'true') return;
+    found.dataset.bound = 'true';
+    // Aliased after the guard: the handlers below are hoisted function
+    // declarations, and TypeScript will not carry a null-check into one.
+    const dialog = found;
+
+    const input = dialog.querySelector<HTMLInputElement>('[data-search-input]')!;
+    const results = dialog.querySelector<HTMLElement>('[data-search-results]')!;
+    const hint = dialog.querySelector<HTMLElement>('[data-search-hint]')!;
+    let active = 0;
+
+    function render(query: string) {
+      const matches = query.trim() ? search(docs ?? [], query) : [];
+
+      if (!query.trim()) {
+        results.innerHTML = '';
+        hint.hidden = true;
+        return;
+      }
+
+      if (matches.length === 0) {
+        results.innerHTML = `<p class="empty">No match for “${escapeHtml(query)}”.</p>`;
+        hint.hidden = true;
+        return;
+      }
+
+      active = 0;
+      hint.hidden = false;
+      results.innerHTML = matches
+        .map(
+          (doc, i) => `
+            <a class="result" href="${escapeHtml(doc.u)}" role="option"
+               aria-selected="${i === 0}" ${i === 0 ? 'data-active' : ''}>
+              <span class="r-main">
+                <span class="r-title">${highlight(doc.t, query)}</span>
+                ${doc.s ? `<span class="r-sub">${escapeHtml(doc.s)}</span>` : ''}
+              </span>
+              <span class="r-kind">${escapeHtml(doc.k)}</span>
+            </a>`,
+        )
+        .join('');
+    }
+
+    function move(delta: number) {
+      const options = [...results.querySelectorAll<HTMLElement>('.result')];
+      if (options.length === 0) return;
+      // Wraps, so ↑ from the first result lands on the last.
+      active = (active + delta + options.length) % options.length;
+      options.forEach((option, i) => {
+        option.toggleAttribute('data-active', i === active);
+        option.setAttribute('aria-selected', String(i === active));
+      });
+      options[active].scrollIntoView({ block: 'nearest' });
+    }
+
+    async function open() {
+      if (dialog.open) return;
+      dialog.showModal();
+      input.value = '';
+      render('');
+      // Fetched on first open rather than on page load: most visits never
+      // search, and this keeps the index off the critical path entirely.
+      await loadIndex();
+      input.focus();
+    }
+
+    document.addEventListener('keydown', (event) => {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable === true;
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        if (dialog.open) dialog.close();
+        else open();
+        return;
+      }
+
+      // "/" is the other convention for this, but only when it isn't being
+      // typed into a field — including this palette's own input.
+      if (event.key === '/' && !typing && !dialog.open) {
+        event.preventDefault();
+        open();
+      }
+    });
+
+    // Delegated so the trigger in the nav keeps working after the router
+    // swaps the header out.
+    document.addEventListener('click', (event) => {
+      const trigger = (event.target as HTMLElement | null)?.closest('[data-search-open]');
+      if (trigger) {
+        event.preventDefault();
+        open();
+      }
+    });
+
+    input.addEventListener('input', () => render(input.value));
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        move(1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === 'Enter') {
+        const current = results.querySelector<HTMLAnchorElement>('.result[data-active]');
+        if (current) {
+          event.preventDefault();
+          dialog.close();
+          current.click();
+        }
+      }
+    });
+
+    // Clicking the backdrop closes. The dialog's own padding is the backdrop
+    // as far as the event target is concerned, so test for the element itself.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    // Following a result closes it too. astro:before-preparation below covers
+    // real navigations, but a result whose href is an anchor on the page you
+    // are already looking at — a recommendation, while you sit on
+    // /recommendations — changes only the hash, fires no navigation, and would
+    // otherwise leave the palette sitting over the row it just scrolled to.
+    results.addEventListener('click', (event) => {
+      if ((event.target as HTMLElement | null)?.closest('.result')) dialog.close();
+    });
+
+    // Following a result navigates; the palette must not still be open on the
+    // other side, which it would be since it persists across transitions.
+    document.addEventListener('astro:before-preparation', () => dialog.close());
+  }
+
+  document.addEventListener('astro:page-load', initSearch);
+</script>
+
+<style>
+  .palette {
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: min(30rem, calc(100vh - 8rem));
+    /* dvh, not vh: on a phone the on-screen keyboard covers the bottom of the
+       viewport without changing vh, which would leave the results rendered
+       underneath it. Declared second so browsers without dvh keep the line
+       above. */
+    max-height: min(30rem, calc(100dvh - 8rem));
+    margin: 12vh auto auto;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+    color: var(--text-primary);
+    box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+  }
+
+  .palette[open] {
+    display: flex;
+  }
+
+  .palette::backdrop {
+    background: color-mix(in srgb, var(--text-primary) 32%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .glass {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+
+  .field input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: none;
+    outline: none;
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    color: var(--text-primary);
+  }
+  .field input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.8;
+  }
+  /* The native clear affordance sits oddly against a borderless field. */
+  .field input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0.15em 0.4em;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    line-height: 1.4;
+  }
+
+  @media (hover: hover) {
+    .dismiss:hover {
+      color: var(--accent-link);
+      border-color: var(--accent-link);
+    }
+  }
+
+  .dismiss-x {
+    display: none;
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  kbd {
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15em 0.4em;
+    line-height: 1.4;
+  }
+
+  .results {
+    overflow-y: auto;
+    padding: 0.35rem;
+  }
+
+  .results :global(.result) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 9px;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .results :global(.result[data-active]) {
+    background: color-mix(in srgb, var(--accent-link) 14%, transparent);
+  }
+
+  .results :global(.r-main) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .results :global(.r-title) {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    color: var(--text-primary);
+  }
+
+  .results :global(mark) {
+    background: var(--hl);
+    color: inherit;
+    border-radius: 2px;
+  }
+
+  .results :global(.r-sub) {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .results :global(.r-kind) {
+    flex-shrink: 0;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .results :global(.empty) {
+    margin: 0;
+    padding: 1rem 0.7rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .hint {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0.55rem 1rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .hint span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .hint .sep {
+    opacity: 0.5;
+  }
+
+  /* "⌘" needs no separating space, "Ctrl" does — same swap as the nav badge. */
+  :global(html.is-apple) .kbd-mod .mod {
+    display: none;
+  }
+  :global(html.is-apple) .kbd-mod::before {
+    content: '⌘';
+  }
+
+  @media (max-width: 640px) {
+    .palette {
+      margin-top: 6vh;
+    }
+    /* Keyboard hints are noise on a device with no keyboard — and so is a
+       control labelled with the name of a key it does not have, hence the
+       swap to a tappable ✕ at a real touch-target size. */
+    .hint {
+      display: none;
+    }
+    .dismiss-esc {
+      display: none;
+    }
+    .dismiss-x {
+      display: block;
+    }
+    .dismiss {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-color: transparent;
+    }
+  }
+</style>

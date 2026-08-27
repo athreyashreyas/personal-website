@@ -1,0 +1,101 @@
+---
+import { COLLECTION_LABELS, type Tagged } from '../lib/tags';
+import { formatDate, isoDate } from '../lib/format';
+
+interface Props {
+  items: Tagged[];
+  /** Show which collection each row came from. Off when they're all one kind. */
+  showKind?: boolean;
+}
+
+const { items, showKind = true } = Astro.props;
+---
+
+<ul class="entry-list">
+  {
+    items.map((item) => (
+      <li>
+        <a class="entry" href={item.href}>
+          <span class="title">{item.title}</span>
+          <span class="right">
+            {showKind && <span class="kind">{COLLECTION_LABELS[item.collection]}</span>}
+            {/* Projects without a date fall back to the epoch in lib/tags —
+                showing "Jan 1, 1970" would be worse than showing nothing. */}
+            {item.date.getTime() > 0 && (
+              <time class="date meta" datetime={isoDate(item.date)}>
+                {formatDate(item.date)}
+              </time>
+            )}
+          </span>
+        </a>
+        {item.description && <p class="desc">{item.description}</p>}
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .entry-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .entry-list > li {
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .entry-list > li:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .entry {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    text-decoration: none;
+  }
+
+  .title {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  @media (hover: hover) {
+    .entry:hover .title {
+      color: var(--accent-link);
+    }
+  }
+
+  .right {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .kind,
+  .date {
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+  }
+
+  .kind {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.5em;
+  }
+
+  .desc {
+    margin: 0.3rem 0 0;
+    max-width: 60ch;
+    color: var(--text-secondary);
+  }
+</style>

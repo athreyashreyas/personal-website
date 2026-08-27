@@ -1,0 +1,41 @@
+---
+import EntryList from './EntryList.astro';
+import { relatedTo } from '../lib/related';
+import type { TaggableCollection } from '../lib/tags';
+
+interface Props {
+  collection: TaggableCollection;
+  id: string;
+}
+
+const { collection, id } = Astro.props;
+const items = await relatedTo(collection, id);
+---
+
+{/* Nothing shared a tag — render nothing rather than an empty heading. */}
+{
+  items.length > 0 && (
+    <aside class="related" aria-labelledby="related-heading">
+      <h2 id="related-heading">Related</h2>
+      <EntryList items={items} />
+    </aside>
+  )
+}
+
+<style>
+  .related {
+    margin-top: 3.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .related h2 {
+    font-size: 1rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    margin: 0 0 0.5rem;
+  }
+</style>

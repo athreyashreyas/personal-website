@@ -10,6 +10,8 @@ import { stillComponents } from '../../components/stills';
 // The interactive widgets a write-up can embed the same way. Merged with the
 // stills below so MDX sees one flat map of available tags.
 import { embedComponents } from '../../components/embeds';
+import TagChips from '../../components/TagChips.astro';
+import Related from '../../components/Related.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -21,10 +23,10 @@ export async function getStaticPaths() {
 
 const { project } = Astro.props;
 const { Content } = await render(project);
-const { title, description, status, links } = project.data;
+const { title, description, status, links, tags } = project.data;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} ogType="article">
   <article>
     <header class="project-head">
       <p class="meta">
@@ -56,11 +58,14 @@ const { title, description, status, links } = project.data;
           </div>
         )
       }
+      <TagChips tags={tags} />
     </header>
 
     <div class="prose">
       <Content components={{ ...stillComponents, ...embedComponents }} />
     </div>
+
+    <Related collection="projects" id={project.id} />
   </article>
 </BaseLayout>
 

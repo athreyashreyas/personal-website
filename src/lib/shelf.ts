@@ -3,7 +3,16 @@ import { getCollection } from 'astro:content';
 /** One recommendation, with its tag ids already resolved to display labels. */
 export type ShelfItem = {
   title: string;
-  url: string | null;
+  /**
+   * Where clicking the node goes: the entry's own note on /recommendations,
+   * not the source it points at.
+   *
+   * Finding something on this site should land you on what was written about
+   * it — the outbound link is right there on the title once you arrive. This
+   * is also why it is never null now: every recommendation has a note, even
+   * the ones with no external URL, which used to make their nodes inert.
+   */
+  url: string;
   category: string | null;
   tags: string[];
 };
@@ -43,7 +52,7 @@ export async function shelfItems(): Promise<ShelfItem[]> {
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
     .map((r) => ({
       title: r.data.title,
-      url: r.data.url ?? null,
+      url: `/recommendations#${r.id}`,
       category: r.data.category ?? null,
       tags: (r.data.tags ?? []).map((id) => labels.get(id) ?? id),
     }));

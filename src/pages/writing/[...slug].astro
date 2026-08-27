@@ -2,6 +2,8 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { formatDate, isoDate } from '../../lib/format';
+import TagChips from '../../components/TagChips.astro';
+import Related from '../../components/Related.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('writing', ({ data }) => {
@@ -17,7 +19,7 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 ---
 
-<BaseLayout title={post.data.title} description={post.data.dek}>
+<BaseLayout title={post.data.title} description={post.data.dek} ogType="article">
   <article>
     <header class="post-head">
       <p class="meta">
@@ -28,20 +30,19 @@ const { Content } = await render(post);
         <time datetime={isoDate(post.data.date)}>
           {formatDate(post.data.date)}
         </time>
-        {
-          post.data.tags && post.data.tags.length > 0 && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span class="tags">{post.data.tags.join(', ')}</span>
-            </>
-          )
-        }
       </p>
+      {/* Tags used to print here as a comma-joined string of raw ids. They are
+          ids from the shared vocabulary now, so they resolve to labels and go
+          somewhere — /tags/<id>, which mixes in the projects and books
+          carrying the same tag. */}
+      <TagChips tags={post.data.tags} />
     </header>
 
     <div class="prose">
       <Content />
     </div>
+
+    <Related collection="writing" id={post.id} />
   </article>
 </BaseLayout>
 

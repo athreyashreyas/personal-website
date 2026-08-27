@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
 import react from '@astrojs/react';
 import keystatic from '@keystatic/astro';
 
@@ -72,12 +73,26 @@ const keystaticDeps = withKeystatic
 
 // https://astro.build/config
 export default defineConfig({
-  // No `site` hardcoded — custom domain comes later; nothing should assume it.
+  // The canonical origin. Everything absolute is derived from this — the
+  // sitemap, <link rel="canonical">, og:url and og:image — so moving to a
+  // custom domain later is this one line and a redeploy. Nothing else in the
+  // codebase names a host.
+  site: 'https://shreyas-athreya.pages.dev',
   prefetch: {
     prefetchAll: true,
     defaultStrategy: 'viewport',
   },
-  integrations: [mdx(), ...(withKeystatic ? [react(), keystatic()] : [])],
+  integrations: [
+    mdx(),
+    sitemap({
+      // /lab/previews is the scratch page for unfinished Lab candidates —
+      // already excluded in robots.txt, and it has no business in a sitemap
+      // either. The extension test drops the generated OG images, which are
+      // page routes as far as the integration is concerned but are not pages.
+      filter: (page) => !page.includes('/lab/previews') && !page.endsWith('.png'),
+    }),
+    ...(withKeystatic ? [react(), keystatic()] : []),
+  ],
   vite: {
     optimizeDeps: { include: keystaticDeps },
   },

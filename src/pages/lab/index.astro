@@ -5,6 +5,7 @@ import { orderLabItems } from '../../lib/ordering';
 // The interactive blocks a Lab item can point at — see components/embeds/index.ts
 // for why they're passed in rather than imported by the MDX itself.
 import { embedComponents } from '../../components/embeds';
+import { slugify } from '../../lib/format';
 
 // Editable in the CMS under "Lab page" (src/content/lab.mdx): a freeform intro
 // plus a list of things, ordered newest-first unless "Use manual order" is on.
@@ -28,7 +29,9 @@ const items = orderLabItems(entry.data.manualOrder, entry.data.items);
         // drops out of the page rather than failing the build.
         const Widget = item.widget ? embedComponents[item.widget] : undefined;
         return (
-          <section class="thing">
+          // Lab items are an array inside one page, not files with slugs, so
+          // the anchor search links to has to be derived from the title.
+          <section class="thing" id={slugify(item.title)}>
             <h2>{item.title}</h2>
             {item.body
               ?.split(/\n\s*\n/)
@@ -47,6 +50,12 @@ const items = orderLabItems(entry.data.manualOrder, entry.data.items);
   .lab h2 {
     margin-top: 2.75rem;
     color: var(--accent-heading);
+  }
+
+  /* Clears the sticky header on tablet and phone — same reasoning as the
+     recommendations rows. */
+  .thing {
+    scroll-margin-top: 5rem;
   }
   /* Prose stays at a comfortable measure while the embedded widgets are free
      to use the full width of the wide wrapper. */

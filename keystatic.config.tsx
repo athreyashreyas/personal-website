@@ -290,9 +290,11 @@ export default config({
           label: 'Dek',
           description: 'Optional one-line summary shown in the list view.',
         }),
-        tags: fields.array(fields.text({ label: 'Tag' }), {
+        tags: fields.array(fields.relationship({ label: 'Tag', collection: 'tags' }), {
           label: 'Tags',
-          itemLabel: (props) => props.value,
+          description:
+            'Search the tags that already exist. To use a new one, add it under Tags first.',
+          itemLabel: (props) => props.value ?? 'Pick a tag',
         }),
         draft: fields.checkbox({
           label: 'Draft',
@@ -329,6 +331,12 @@ export default config({
         status: fields.text({
           label: 'Status',
           description: 'Optional — e.g. active, in progress, archived, complete.',
+        }),
+        tags: fields.array(fields.relationship({ label: 'Tag', collection: 'tags' }), {
+          label: 'Tags',
+          description:
+            'Search the tags that already exist. To use a new one, add it under Tags first.',
+          itemLabel: (props) => props.value ?? 'Pick a tag',
         }),
         date: fields.date({
           label: 'Date',

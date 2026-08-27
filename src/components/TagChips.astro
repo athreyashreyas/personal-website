@@ -1,0 +1,84 @@
+---
+import { labelFor, tagLabels } from '../lib/tags';
+
+interface Props {
+  /** Tag ids. Resolved to display labels here so callers don't each do it. */
+  tags: string[];
+  /** Marks one chip as the page you're already on. */
+  current?: string;
+  /** Rendered small and inline, for a list row rather than a page header. */
+  compact?: boolean;
+}
+
+const { tags, current, compact = false } = Astro.props;
+const labels = await tagLabels();
+---
+
+{
+  tags.length > 0 && (
+    <ul class:list={['tag-chips', { compact }]}>
+      {tags.map((id) => (
+        <li>
+          <a
+            href={`/tags/${id}`}
+            aria-current={id === current ? 'page' : undefined}
+          >
+            {labelFor(id, labels)}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  /* The site's one label treatment (see --label-size in global.css), given a
+     hairline box so a tag reads as somewhere you can go rather than as the
+     plain metadata the recommendations list already shows. */
+  .tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tag-chips li {
+    margin: 0;
+  }
+
+  .tag-chips a {
+    display: inline-block;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.25em 0.6em;
+    text-decoration: none;
+  }
+
+  /* Same (hover: hover) gate as the nav: on touch, a tap leaves a sticky
+     :hover on the chip you just followed, which then reads as the current
+     tag on the page you land on. */
+  @media (hover: hover) {
+    .tag-chips a:hover {
+      color: var(--accent-link);
+      border-color: var(--accent-link);
+      text-decoration: none;
+    }
+  }
+
+  .tag-chips a[aria-current='page'] {
+    color: var(--accent-link);
+    border-color: var(--accent-link);
+    background: color-mix(in srgb, var(--accent-link) 12%, transparent);
+  }
+
+  .compact a {
+    padding: 0.1em 0.45em;
+  }
+</style>

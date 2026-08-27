@@ -70,10 +70,70 @@ function isCurrent(href: string) {
     }
   </ul>
 
-  <ThemeToggle />
+  {/* Grouped so the nav stays a two-item flex row (links | actions) and the
+      space-between split doesn't shift when this was added. The palette
+      itself lives in BaseLayout; this only has to carry the data attribute
+      its delegated click handler looks for. */}
+  <div class="nav-actions">
+    <button
+      class="search-trigger"
+      type="button"
+      data-search-open
+      aria-label="Search"
+      title="Search"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.9"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.5-3.5"></path>
+      </svg>
+    </button>
+    <ThemeToggle />
+  </div>
 </nav>
 
 <style>
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  .search-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Matches the theme toggle's 2.1rem circle so the pair reads as one
+       control group rather than two unrelated things. */
+    height: 2.1rem;
+    width: 2.1rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .search-trigger svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  /* Same (hover: hover) gate as the links below — see the note there. */
+  @media (hover: hover) {
+    .search-trigger:hover {
+      color: var(--accent-link);
+    }
+  }
+
   .site-nav {
     font-family: var(--font-serif);
     padding-block: 1.5rem;

@@ -149,19 +149,56 @@ identity in the tokens, not in individual components.
 
 ## Deploy
 
-Push to `main`; Netlify builds with `npm run build` and publishes `dist/`.
-Those settings live in the Netlify site config, not in the repo — there is no
-`netlify.toml` here. Set the build image's Node version to match
-`.node-version` (22). No domain is hardcoded anywhere.
+Push to `main`; the host builds with `npm run build` and publishes `dist/`.
+Those settings live in the host's site config, not in the repo — there is no
+`netlify.toml` or `wrangler.toml` here. Set the build image's Node version to
+match `.node-version` (22).
+
+NB: this section still describes Netlify below, but the site currently serves
+from `shreyas-athreya.pages.dev` — Cloudflare Pages. Worth reconciling.
 
 `src/pages/404.astro` builds to `dist/404.html`, which Netlify serves for any
 unmatched path with no configuration needed. `public/robots.txt` allows
 everything except `/lab/previews`, the unlinked scratch page.
 
-### Not done yet: the canonical domain
+### The canonical domain
 
-`astro.config.mjs` deliberately sets no `site`, so nothing assumes a domain.
-That also means the site currently has no canonical URLs, no `og:url`, no
-`og:image`, and no sitemap — all of which need absolute URLs. When the domain
-is settled, set `site` and add those together; `@astrojs/sitemap` and the
-`Sitemap:` line in `robots.txt` are the two follow-ups.
+`site` in `astro.config.mjs` is the one place a host is named. The sitemap,
+`<link rel="canonical">`, `og:url` and every `og:image` URL are derived from
+it, so moving to a custom domain is that line plus the `Sitemap:` line in
+`public/robots.txt`.
+
+## Discovery — tags, search, social cards
+
+Four things that make the content findable. None of them need any authoring
+beyond tagging an entry.
+
+- **Tags.** One controlled vocabulary in `src/content/tags/`, now shared by
+  writing, projects *and* recommendations rather than recommendations alone.
+  `/tags` lists what is in use; `/tags/<id>` shows everything carrying it,
+  grouped by kind. This is the only thing on the site that puts a book next to
+  the project it turned into, so it is worth tagging entries generously.
+- **Related entries.** The strip at the foot of a post or project, ranked by
+  shared tags (`src/lib/related.ts`). It deliberately prefers a match from a
+  *different* collection. An entry with no tags gets no strip.
+- **Social cards.** `src/lib/og.ts` renders a 1200×630 PNG per page at build
+  time with satori, rasterized through the `sharp` Astro already ships. The
+  card list in `src/lib/og-routes.ts` is the single source of truth: it drives
+  both the `/og/…png` endpoint and the `og:image` each page points at, so a
+  page can never advertise a card that was not generated.
+- **Search.** `⌘K`, `/`, or the magnifier in the nav. `/search.json` is built
+  at compile time and fetched once, on first open; matching happens in the
+  browser (`src/components/SearchPalette.astro`). Nothing hosted, nothing to
+  keep in sync.
+
+**Everything on this site links back into this site.** A recommendation has no
+page of its own, so search results, tag pages, related strips and the Lab shelf
+graph all point at `/recommendations#<slug>` — the entry's own note — rather
+than at the book's source. Finding something here should land you on what was
+written about it; the outbound link is on the title once you arrive. Lab items
+follow the same rule via `/lab#<slug>`. If you add another surface that lists
+recommendations, take the `href` from `src/lib/tags.ts` rather than from
+`entry.data.url`.
+
+Drafts stay out of all of it: tag pages and the search index both apply the
+same `draft !== true` rule in production that the Writing list does.

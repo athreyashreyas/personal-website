@@ -1,0 +1,114 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EntryList from '../../components/EntryList.astro';
+import { COLLECTION_LABELS, tagIndex, tagLabels, labelFor, type TaggableCollection } from '../../lib/tags';
+
+// One page per tag that something actually carries — see the note in
+// usedTags() for why this is driven by the index rather than the vocabulary.
+export const getStaticPaths = (async () => {
+  const [index, labels] = await Promise.all([tagIndex(), tagLabels()]);
+  return [...index.entries()].map(([id, items]) => ({
+    params: { tag: id },
+    props: { label: labelFor(id, labels), items },
+  }));
+}) satisfies GetStaticPaths;
+
+const { label, items } = Astro.props;
+
+// Grouped by kind so the page reads as "here is the writing, here are the
+// books" rather than as one undifferentiated list. Order follows
+// COLLECTION_LABELS; a group with nothing in it is dropped.
+const groups = (Object.keys(COLLECTION_LABELS) as TaggableCollection[])
+  .map((collection) => ({
+    collection,
+    items: items.filter((item) => item.collection === collection),
+  }))
+  .filter((group) => group.items.length > 0);
+
+// Composed here rather than inline in the markup: Astro inserts whitespace
+// between adjacent expressions, which rendered as "4 entries  across …".
+const summary =
+  `${items.length} ${items.length === 1 ? 'entry' : 'entries'}` +
+  (groups.length > 1 ? ` across ${groups.length} sections` : '') +
+  '.';
+
+const HEADINGS: Record<TaggableCollection, string> = {
+  writing: 'Writing',
+  projects: 'Projects',
+  recommendations: 'Recommendations',
+};
+---
+
+<BaseLayout
+  title={label}
+  description={`Everything on this site tagged “${label}” — ${items.length} ${
+    items.length === 1 ? 'entry' : 'entries'
+  } across writing, projects, and recommendations.`}
+>
+  <header class="page-head">
+    <p class="eyebrow"><a href="/tags">Tags</a></p>
+    <h1><span class="hl-title">{label}</span></h1>
+    <p class="page-sub">{summary}</p>
+  </header>
+
+  {
+    groups.map((group) => (
+      <section class="group">
+        {/* Only worth a heading when there is more than one group — with a
+            single kind the heading just repeats what every row already says. */}
+        {groups.length > 1 && <h2>{HEADINGS[group.collection]}</h2>}
+        <EntryList items={group.items} showKind={groups.length === 1} />
+      </section>
+    ))
+  }
+
+  <p class="back meta"><a href="/tags">← All tags</a></p>
+</BaseLayout>
+
+<style>
+  .page-head {
+    margin-bottom: 2.25rem;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.15rem;
+    font-family: var(--font-sans);
+    font-size: var(--label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+  }
+  .eyebrow a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .eyebrow a:hover {
+    color: var(--accent-link);
+  }
+
+  .page-sub {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+
+  .group + .group {
+    margin-top: 2.75rem;
+  }
+
+  .group h2 {
+    font-size: 1rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    margin: 0 0 0.4rem;
+  }
+
+  .back {
+    margin-top: 2.5rem;
+  }
+</style>

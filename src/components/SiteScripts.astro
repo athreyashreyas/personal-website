@@ -241,3 +241,31 @@
     });
   })();
 </script>
+
+{/* Which modifier key the search shortcut is spelled with, for the hint row
+    at the foot of the search palette. Set here rather than in that component
+    so it lands before first paint and the hint reads correctly the moment it
+    appears, instead of being corrected a frame later.
+
+    Purely a spelling decision: the handler in SearchPalette accepts either
+    modifier on every platform regardless of what this says. */}
+<script is:inline>
+  (function () {
+    try {
+      // userAgentData where it exists (Chromium), the UA string everywhere
+      // else. Deliberately NOT navigator.platform, which is deprecated and
+      // gives nothing the UA string doesn't. An iPad on iPadOS 13+ reports a
+      // desktop UA and so reads as Apple here — correct, since an iPad with a
+      // keyboard attached does use ⌘.
+      var ua = (navigator.userAgentData && navigator.userAgentData.platform) ||
+        navigator.userAgent || '';
+      if (/mac|iphone|ipad|ipod/i.test(ua)) {
+        document.documentElement.classList.add('is-apple');
+      }
+    } catch (e) {
+      /* Leave it spelled "Ctrl", which is the safer default: a Mac user
+         reading "Ctrl K" still finds the palette, because Ctrl-K works
+         there too. */
+    }
+  })();
+</script>
