@@ -1,8 +1,8 @@
 # Personal site
 
 Astro + MDX content collections, edited through a local **Keystatic** CMS.
-Fully static, no database, no backend. Deployed on Netlify. Built to the spec
-in [`personal-site-spec.md`](./personal-site-spec.md).
+Fully static, no database, no backend. Deployed on Cloudflare Pages. Built to
+the spec in [`personal-site-spec.md`](./personal-site-spec.md).
 
 Requires Node 20.3+, 22, or 24 (see `.node-version`; Node 21 is not supported
 by Astro).
@@ -140,6 +140,23 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
 Then add a link to it from `src/pages/lab/index.astro`.
 
+### Trying one out first — `/lab/previews`
+
+`src/dev-pages/previews.astro` is the scratch page where a Lab idea gets built
+before it earns a place on `/lab`. Open it at
+[localhost:4321/lab/previews](http://localhost:4321/lab/previews).
+
+**It only exists on localhost.** The file sits outside `src/pages` so
+file-based routing cannot emit it, and it is mounted as a route by the
+`labPreviews` integration in `astro.config.mjs`, which is only added to
+`integrations` when the command is `astro dev`. A production build has no such
+route — nothing to disallow, nothing to hide. Put half-finished work here
+freely; it cannot leak.
+
+(It used to live at `src/pages/lab/previews.astro`, where it *did* ship — a
+`Disallow` in `robots.txt` keeps it out of search results but does nothing to
+stop anyone with the URL.)
+
 ## Design tokens
 
 All colors, fonts, and spacing live as CSS custom properties in
@@ -149,17 +166,17 @@ identity in the tokens, not in individual components.
 
 ## Deploy
 
-Push to `main`; the host builds with `npm run build` and publishes `dist/`.
-Those settings live in the host's site config, not in the repo — there is no
-`netlify.toml` or `wrangler.toml` here. Set the build image's Node version to
-match `.node-version` (22).
+Push to `main`; **Cloudflare Pages** builds with `npm run build` and publishes
+`dist/`, currently serving at
+[shreyas-athreya.pages.dev](https://shreyas-athreya.pages.dev). Those settings
+live in the Pages project config, not in the repo — there is no `wrangler.toml`
+(or `netlify.toml`) here. Set the build image's Node version to match
+`.node-version` (22).
 
-NB: this section still describes Netlify below, but the site currently serves
-from `shreyas-athreya.pages.dev` — Cloudflare Pages. Worth reconciling.
-
-`src/pages/404.astro` builds to `dist/404.html`, which Netlify serves for any
+`src/pages/404.astro` builds to `dist/404.html`, which Pages serves for any
 unmatched path with no configuration needed. `public/robots.txt` allows
-everything except `/lab/previews`, the unlinked scratch page.
+everything — there is nothing on the deployed site that needs hiding, since
+the one page that did (`/lab/previews`) is no longer built at all.
 
 ### The canonical domain
 

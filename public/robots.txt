@@ -2,8 +2,4 @@
 User-agent: *
 Allow: /
 
-# /lab/previews is a scratch page for unfinished Lab candidates — deliberately
-# unlinked from the site, so it should not turn up in a search result either.
-Disallow: /lab/previews
-
 Sitemap: https://shreyas-athreya.pages.dev/sitemap-index.xml

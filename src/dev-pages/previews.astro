@@ -1,13 +1,23 @@
 ---
 // Scratch page for Lab candidates — where a Lab idea gets tried before it
-// earns a place on /lab. Deliberately unlinked from anywhere: reach it by URL.
+// earns a place on /lab.
+//
+// DEV ONLY. This file sits outside src/pages on purpose, so Astro's file-based
+// routing cannot pick it up and no production build can emit it. It is mounted
+// at /lab/previews by an injectRoute in astro.config.mjs that only runs under
+// `astro dev` — see the labPreviews integration there.
+//
+// It used to live at src/pages/lab/previews.astro, which meant it shipped: the
+// only things keeping it out of sight were a Disallow in robots.txt and a
+// sitemap filter, neither of which stops anyone who has the URL. Half-finished
+// work should not be reachable on the live site at all.
 //
 // The shelf graph that started here now ships as
 // components/embeds/ShelfGraphWidget.astro and is live on /lab. It stays here
 // with its sample-data toggle, which the shipped widget drops, because that is
 // the only way to see how the layout behaves at a couple of dozen entries.
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import { shelfItems } from '../../lib/shelf';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { shelfItems } from '../lib/shelf';
 
 // Handed to the client on a data attribute rather than via define:vars, which
 // would stop the module below from being bundled.

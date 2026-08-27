@@ -71,6 +71,27 @@ const keystaticDeps = withKeystatic
     ]
   : [];
 
+/**
+ * Mounts the Lab previews scratch page at /lab/previews, in dev only.
+ *
+ * The file lives in src/dev-pages rather than src/pages so file-based routing
+ * can never emit it; this is the only thing that makes it reachable, and it is
+ * only added to `integrations` while `astro dev` is running. A production build
+ * therefore has no such route at all — not a hidden one, not a disallowed one.
+ */
+/** @type {import('astro').AstroIntegration} */
+const labPreviews = {
+  name: 'lab-previews-dev-only',
+  hooks: {
+    'astro:config:setup': ({ injectRoute }) => {
+      injectRoute({
+        pattern: '/lab/previews',
+        entrypoint: './src/dev-pages/previews.astro',
+      });
+    },
+  },
+};
+
 // https://astro.build/config
 export default defineConfig({
   // The canonical origin. Everything absolute is derived from this — the
@@ -85,12 +106,12 @@ export default defineConfig({
   integrations: [
     mdx(),
     sitemap({
-      // /lab/previews is the scratch page for unfinished Lab candidates —
-      // already excluded in robots.txt, and it has no business in a sitemap
-      // either. The extension test drops the generated OG images, which are
-      // page routes as far as the integration is concerned but are not pages.
-      filter: (page) => !page.includes('/lab/previews') && !page.endsWith('.png'),
+      // Drops the generated OG images, which are page routes as far as the
+      // integration is concerned but are not pages. Nothing needs excluding
+      // for /lab/previews any more: it is not built at all (see labPreviews).
+      filter: (page) => !page.endsWith('.png'),
     }),
+    ...(isDev ? [labPreviews] : []),
     ...(withKeystatic ? [react(), keystatic()] : []),
   ],
   vite: {

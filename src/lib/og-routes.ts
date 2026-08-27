@@ -83,8 +83,9 @@ let pathsPromise: Promise<Set<string>> | undefined;
 
 /**
  * The site-relative og:image for a page, falling back to the home card for
- * anything with no card of its own (404, /lab/previews). Every page gets a
- * real image either way — the fallback is a card, not a missing tag.
+ * anything with no card of its own — 404, and the dev-only /lab/previews.
+ * Every page gets a real image either way: the fallback is a card, not a
+ * missing tag.
  */
 export async function ogImageFor(pathname: string): Promise<string> {
   pathsPromise ??= ogCards().then((cards) => new Set(cards.map((card) => card.path)));
