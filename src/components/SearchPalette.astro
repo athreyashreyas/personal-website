@@ -170,6 +170,24 @@
     const dialog = found;
 
     const input = dialog.querySelector<HTMLInputElement>('[data-search-input]')!;
+
+    /**
+     * The full placeholder needs ~250px and the field is 160px wide on a
+     * 320px phone, so on a narrow screen it was simply cut off mid-word —
+     * "Search writing, proje". A placeholder cannot be changed from CSS, so
+     * the swap happens here, and re-runs on rotation.
+     *
+     * The short form still names the scope rather than just saying "Search",
+     * and at 128px it clears the narrowest field with room to spare.
+     */
+    const narrow = window.matchMedia('(max-width: 640px)');
+    const setPlaceholder = () => {
+      input.placeholder = narrow.matches
+        ? 'Search this site…'
+        : 'Search writing, projects, books…';
+    };
+    setPlaceholder();
+    narrow.addEventListener('change', setPlaceholder);
     const results = dialog.querySelector<HTMLElement>('[data-search-results]')!;
     const hint = dialog.querySelector<HTMLElement>('[data-search-hint]')!;
     let active = 0;
@@ -191,16 +209,17 @@
 
       active = 0;
       hint.hidden = false;
+      // Title, sub and kind are siblings rather than nested, so the grid in
+      // the styles below can lay them out one way on a wide screen and
+      // another on a phone without the markup changing.
       results.innerHTML = matches
         .map(
           (doc, i) => `
             <a class="result" href="${escapeHtml(doc.u)}" role="option"
                aria-selected="${i === 0}" ${i === 0 ? 'data-active' : ''}>
-              <span class="r-main">
-                <span class="r-title">${highlight(doc.t, query)}</span>
-                ${doc.s ? `<span class="r-sub">${escapeHtml(doc.s)}</span>` : ''}
-              </span>
+              <span class="r-title">${highlight(doc.t, query)}</span>
               <span class="r-kind">${escapeHtml(doc.k)}</span>
+              ${doc.s ? `<span class="r-sub">${escapeHtml(doc.s)}</span>` : ''}
             </a>`,
         )
         .join('');
@@ -416,11 +435,17 @@
     padding: 0.35rem;
   }
 
+  /* Title on the left with the kind pinned right, and the subtitle tucked
+     under the title — the same shape the old flex markup had. */
   .results :global(.result) {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'title kind'
+      'sub   sub';
     align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
+    column-gap: 0.75rem;
+    row-gap: 0.1rem;
     padding: 0.6rem 0.7rem;
     border-radius: 9px;
     text-decoration: none;
@@ -431,14 +456,9 @@
     background: color-mix(in srgb, var(--accent-link) 14%, transparent);
   }
 
-  .results :global(.r-main) {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    min-width: 0;
-  }
-
   .results :global(.r-title) {
+    grid-area: title;
+    min-width: 0;
     font-family: var(--font-serif);
     font-size: 1.05rem;
     color: var(--text-primary);
@@ -451,6 +471,8 @@
   }
 
   .results :global(.r-sub) {
+    grid-area: sub;
+    min-width: 0;
     font-family: var(--font-sans);
     font-size: 0.78rem;
     color: var(--text-secondary);
@@ -460,12 +482,13 @@
   }
 
   .results :global(.r-kind) {
-    flex-shrink: 0;
+    grid-area: kind;
     font-family: var(--font-sans);
     font-size: var(--label-size);
     text-transform: uppercase;
     letter-spacing: var(--label-tracking);
     color: var(--text-secondary);
+    white-space: nowrap;
   }
 
   .results :global(.empty) {
@@ -512,6 +535,18 @@
     .palette {
       margin-top: 6vh;
     }
+    /* A dialog this narrow cannot afford to spend ~110px of it on the word
+       RECOMMENDATION next to the title: it squeezed the title into half the
+       row and broke it across two ragged lines. Below the title there is
+       room for both labels side by side, and the title gets the full width. */
+    .results :global(.result) {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        'title title'
+        'kind  sub';
+      column-gap: 0.5rem;
+    }
+
     /* Keyboard hints are noise on a device with no keyboard — and so is a
        control labelled with the name of a key it does not have, hence the
        swap to a tappable ✕ at a real touch-target size. */
